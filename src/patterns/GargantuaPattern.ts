@@ -106,7 +106,18 @@ export class GargantuaPattern extends BasePattern {
    * Get pattern parameters for Leva controls
    */
   getParams(): GargantuaParams {
-    return { ...this.params };
+    return {
+      diskRadius: this.params.diskRadius,
+      diskThickness: this.params.diskThickness,
+      diskRotationSpeed: this.params.diskRotationSpeed,
+      colorTemperature: this.params.colorTemperature,
+      lensingIntensity: this.params.lensingIntensity,
+      photonRingIntensity: this.params.photonRingIntensity,
+      dopplerRatio: this.params.dopplerRatio,
+      particleCount: this.params.particleCount,
+      backgroundColor: this.params.backgroundColor,
+      backgroundAlpha: this.params.backgroundAlpha,
+    };
   }
 
   /**
@@ -382,46 +393,49 @@ export class GargantuaPattern extends BasePattern {
 
   /**
    * Draw gravitational lensing effect
+   * Uses actual disk particles to create the bent "Einstein ring" effect
    */
   private drawGravitationalLensing(p: p5, audioValues: any): void {
     if (audioValues.lensing < 0.1) return;
 
     const intensity = audioValues.lensing;
-    const radius = audioValues.diskRadius;
 
     p.push();
     p.noStroke();
 
-    // Simplified lensing: draw bent portions of the disk
-    // Upper arc (back of disk bent upward)
-    for (let i = 0; i < 20; i++) {
-      const angle = (i / 20) * Math.PI; // 0 to PI (upper half)
-      const lensedAngle = angle;
-      const lensedRadius = radius * (1.2 + Math.sin(angle) * 0.3 * intensity);
-      const yPos = -radius * 0.5 - Math.sin(angle) * radius * 0.4 * intensity;
+    // Use actual disk particles to create lensed effect
+    // Only particles on the "back" side (z < 0) get lensed
+    for (const particle of this.particles) {
+      const zPos = Math.cos(particle.angle + this.diskRotation) * particle.radius;
 
-      const color = this.getAccretionColor(p, lensedRadius, audioValues.temperature, 0.3 * intensity);
-      p.fill(p.red(color), p.green(color), p.blue(color), 100 * intensity);
+      // Only lens the back side of the disk
+      if (zPos >= 0) continue;
+
+      // Calculate how far from center (for distortion amount)
+      const distFromCenter = Math.sqrt(particle.radius * particle.radius + particle.y * particle.y);
+      const normalizedDist = distFromCenter / this.params.diskRadius; // 0 to 1
+
+      // Lensing distortion: particles further from center get bent more
+      const distortionAmount = intensity * Math.pow(normalizedDist, 1.5);
+
+      // Determine which way to bend (up or down) based on Y position
+      const bendDirection = particle.y >= 0 ? 1 : -1;
+      const yOffset = bendDirection * distortionAmount * 50 * intensity;
+
+      // Calculate position with rotation
+      const x = Math.sin(particle.angle + this.diskRotation) * particle.radius;
+      const y = particle.y + yOffset;
+      const z = zPos;
+
+      // Get color (slightly dimmed for lensed version)
+      const color = this.getAccretionColor(p, particle.radius, audioValues.temperature, 0.2);
+
+      // Draw lensed particle
+      const alpha = particle.brightness * 120 * intensity;
+      p.fill(p.red(color), p.green(color), p.blue(color), alpha);
       p.push();
-      p.rotateY(this.diskRotation + lensedAngle);
-      p.translate(0, yPos, 0);
-      p.sphere(2);
-      p.pop();
-    }
-
-    // Lower arc (back of disk bent downward)
-    for (let i = 0; i < 20; i++) {
-      const angle = (i / 20) * Math.PI; // 0 to PI (upper half, but we flip)
-      const lensedAngle = angle + Math.PI;
-      const lensedRadius = radius * (1.2 + Math.sin(angle) * 0.3 * intensity);
-      const yPos = radius * 0.5 + Math.sin(angle) * radius * 0.4 * intensity;
-
-      const color = this.getAccretionColor(p, lensedRadius, audioValues.temperature, 0.3 * intensity);
-      p.fill(p.red(color), p.green(color), p.blue(color), 100 * intensity);
-      p.push();
-      p.rotateY(this.diskRotation + lensedAngle);
-      p.translate(0, yPos, 0);
-      p.sphere(2);
+      p.translate(x, y, z);
+      p.sphere(particle.size * 0.8); // Slightly smaller
       p.pop();
     }
 

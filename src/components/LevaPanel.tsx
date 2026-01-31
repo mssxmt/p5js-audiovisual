@@ -207,6 +207,34 @@ export const LevaPanel: React.FC<LevaPanelProps> = ({
               config[key].step = valueObj.step;
             }
           }
+
+          // Auto-set step based on parameter name (don't override min/max)
+          if (typeof value === 'number' && !config[key].step) {
+            // Parameter-specific step defaults
+            if (key.includes('Intensity') || key.includes('Ratio') || key.includes('Temperature')) {
+              config[key].step = 0.05;
+            } else if (key.includes('Radius') || key.includes('Count')) {
+              config[key].step = Math.max(1, Math.round((value || 100) / 20));
+            } else if (key.includes('Thickness')) {
+              config[key].step = 0.5;
+            } else if (key.includes('Speed')) {
+              config[key].step = 0.05;
+            } else if (key.includes('Alpha')) {
+              config[key].step = 0.05;
+            } else {
+              // Default step based on value magnitude
+              const magnitude = Math.abs(value || 1);
+              if (magnitude < 1) {
+                config[key].step = 0.05;
+              } else if (magnitude < 10) {
+                config[key].step = 0.5;
+              } else if (magnitude < 100) {
+                config[key].step = 5;
+              } else {
+                config[key].step = 10;
+              }
+            }
+          }
         }
       }
 
