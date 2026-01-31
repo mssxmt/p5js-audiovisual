@@ -42,6 +42,7 @@ interface GargantuaParams {
 interface PlasmaParticle {
   angle: number;              // Angle in disk (0-2PI)
   radius: number;             // Distance from center
+  y: number;                  // Fixed Y position (thickness offset)
   speed: number;              // Orbital speed
   brightness: number;         // Particle brightness
   size: number;               // Particle size
@@ -193,6 +194,9 @@ export class GargantuaPattern extends BasePattern {
     const radiusBias = Math.pow(p.random(), 2); // Bias toward inner edge
     const radius = MIN_DISK_RADIUS + radiusBias * (this.params.diskRadius - MIN_DISK_RADIUS);
 
+    // Fixed Y position for thickness (distributed evenly across disk thickness)
+    const y = (p.random() - 0.5) * this.params.diskThickness * 2;
+
     // Orbital speed (faster near center, Keplerian-ish)
     const speed = 0.5 + (1 - radiusBias) * 1.5;
 
@@ -205,7 +209,7 @@ export class GargantuaPattern extends BasePattern {
     // Color will be calculated during draw
     const color = p.color(255, 150, 50);
 
-    return { angle, radius, speed, brightness, size, color };
+    return { angle, radius, y, speed, brightness, size, color };
   }
 
   /**
@@ -225,8 +229,9 @@ export class GargantuaPattern extends BasePattern {
     const midiLensing = this.getCCValue(context.midi, 0, 4, this.params.lensingIntensity);
     const midiPhotonRing = this.getCCValue(context.midi, 0, 5, this.params.photonRingIntensity);
 
-    // Audio reactivity: Bass increases rotation speed and thickness
-    const audioRotationSpeed = this.params.diskRotationSpeed * (0.5 + bassLevel * 3);
+    // Audio reactivity: Bass slightly increases rotation speed (smooth) and thickness
+    // Reduced rotation variation for smoothness: 0.8x to 1.2x instead of 0.5x to 3.5x
+    const audioRotationSpeed = this.params.diskRotationSpeed * (0.8 + bassLevel * 0.4);
     const audioThickness = midiThickness * (0.5 + bassLevel * 2);
 
     // Audio reactivity: Volume affects disk radius
@@ -427,9 +432,6 @@ export class GargantuaPattern extends BasePattern {
    * Draw accretion disk (one half at a time for proper layering)
    */
   private drawAccretionDiskHalf(p: p5, audioValues: any, front: boolean): void {
-    const diskRadius = audioValues.diskRadius;
-    const thickness = audioValues.thickness;
-
     p.push();
     p.noStroke();
 
@@ -447,7 +449,7 @@ export class GargantuaPattern extends BasePattern {
 
       // Calculate position
       const x = Math.sin(particle.angle + this.diskRotation) * particle.radius;
-      const y = (Math.random() - 0.5) * thickness * 2;
+      const y = particle.y; // Use fixed Y position (no flickering)
       const z = zPos;
 
       // Get color
@@ -462,37 +464,7 @@ export class GargantuaPattern extends BasePattern {
       p.pop();
     }
 
-    // Draw disk glow (additive blending simulation)
-    this.drawDiskGlow(p, diskRadius, thickness, audioValues, front);
-
     p.pop();
-  }
-
-  /**
-   * Draw disk glow effect
-   */
-  private drawDiskGlow(p: p5, radius: number, thickness: number, audioValues: any, front: boolean): void {
-    // Glow intensity based on audio
-    const glowIntensity = 0.3 + audioValues.bassLevel * 0.4;
-
-    // Inner glow (hotter, brighter)
-    const innerColor = this.getAccretionColor(p, MIN_DISK_RADIUS, audioValues.temperature, 0.5);
-
-    // Draw multiple translucent tori for glow
-    for (let i = 0; i < 5; i++) {
-      const glowRadius = MIN_DISK_RADIUS + (radius - MIN_DISK_RADIUS) * (i + 1) / 5;
-      const glowAlpha = (1 - i / 5) * glowIntensity * 50;
-      const zTest = i % 2 === 0; // Alternate depth for layering
-
-      if (zTest !== front) continue;
-
-      p.push();
-      p.rotateX(Math.PI / 2); // Lay flat
-      p.noStroke();
-      p.fill(p.red(innerColor), p.green(innerColor), p.blue(innerColor), glowAlpha);
-      p.torus(glowRadius, thickness * (1 + i * 0.2));
-      p.pop();
-    }
   }
 
   /**
