@@ -20,6 +20,18 @@ export interface PatternRenderOptions {
   trailAlpha: number;
 }
 
+/**
+ * Parameter metadata for UI controls
+ */
+export interface ParameterMeta {
+  min: number;
+  max: number;
+  step: number;
+  label?: string;
+}
+
+export type ParameterMetaMap = Record<string, ParameterMeta>;
+
 export enum PatternCategory {
   PHYSICS = 'physics',
   GEOMETRIC = 'geometric',
@@ -38,4 +50,7 @@ export interface IBasePattern {
   draw(p: p5, options: PatternRenderOptions): void;
   cleanup(p: p5): void | Promise<void>;
   resize?(p: p5, width: number, height: number): void;
+  getParams?(): Record<string, any>;
+  setParams?(params: Record<string, any>): void;
+  getParamMeta?(): ParameterMetaMap;
 }

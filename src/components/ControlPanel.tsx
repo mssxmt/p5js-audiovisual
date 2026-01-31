@@ -12,6 +12,7 @@ interface PatternWithParams {
   name?: string;
   getParams?(): Record<string, any>;
   setParams?(params: Record<string, any>): void;
+  getParamMeta?(): Record<string, { min: number; max: number; step: number }>;
 }
 
 export interface ControlPanelProps {
@@ -69,6 +70,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       }
     }
   }, [pattern]);
+
+  // Listen for parameter updates from MIDI
+  useEffect(() => {
+    const handleParameterUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ name: string; value: number }>;
+      const { name, value } = customEvent.detail;
+      setLocalParams(prev => ({ ...prev, [name]: value }));
+    };
+
+    window.addEventListener('parameterUpdate', handleParameterUpdate);
+    return () => window.removeEventListener('parameterUpdate', handleParameterUpdate);
+  }, []);
 
   // Handle keyboard toggle
   useEffect(() => {
@@ -152,53 +165,39 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     );
   };
 
-  // Get step for parameter
-  const getStepForParam = (key: string, value: any): number => {
-    // Check if value object has step property
-    if (typeof value === 'object' && value !== null && !Array.isArray(value) && 'step' in value) {
-      return value.step;
+  // Get parameter metadata (min, max, step)
+  const getParamMeta = (key: string, value: any): { min: number; max: number; step: number } => {
+    // Try pattern.getParamMeta first
+    if (pattern?.getParamMeta) {
+      const metaMap = pattern.getParamMeta();
+      if (metaMap[key]) {
+        return metaMap[key];
+      }
     }
-    // Auto-detect based on parameter name
-    if (key.includes('Intensity') || key.includes('Ratio') || key.includes('Temperature')) {
-      return 0.05;
-    } else if (key.includes('Radius') || key.includes('Count')) {
-      const numValue = typeof value === 'number' ? value : 100;
-      return Math.max(1, Math.round(numValue / 20));
-    } else if (key.includes('Thickness')) {
-      return 0.5;
-    } else if (key.includes('Speed')) {
-      return 0.05;
-    } else if (key.includes('Alpha')) {
-      return 0.05;
-    }
-    // Default based on value magnitude
-    const numValue = typeof value === 'number' ? value : 1;
-    const magnitude = Math.abs(numValue);
-    if (magnitude < 1) return 0.05;
-    if (magnitude < 10) return 0.5;
-    if (magnitude < 100) return 5;
-    return 10;
-  };
 
-  // Get min/max for parameter
-  const getMinMaxForParam = (value: any): { min: number; max: number } => {
+    // Fallback: check if value object has min/max/step
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       const hasMin = 'min' in value;
       const hasMax = 'max' in value;
-      if (hasMin && hasMax) {
-        return { min: value.min, max: value.max };
-      } else if (hasMin) {
-        return { min: value.min, max: value.min * 2 };
-      } else if (hasMax) {
-        return { min: 0, max: value.max };
+      const hasStep = 'step' in value;
+      if (hasMin && hasMax && hasStep) {
+        return { min: value.min, max: value.max, step: value.step };
       }
     }
-    if (typeof value === 'number') {
-      if (value >= 0 && value <= 1) return { min: 0, max: 1 };
-      if (value >= 0 && value <= 100) return { min: 0, max: value * 2 };
-      return { min: 0, max: value * 1.5 };
+
+    // Final fallback: sensible defaults
+    const numValue = typeof value === 'number' ? value : 0;
+    if (numValue >= 0 && numValue <= 1) {
+      return { min: 0, max: 1, step: 0.01 };
     }
-    return { min: 0, max: 1 };
+    if (key.includes('Count')) {
+      return { min: 1, max: 2000, step: 1 };
+    }
+    if (key.includes('Radius') || key.includes('Length')) {
+      return { min: 0, max: 500, step: 1 };
+    }
+    // Default for most parameters
+    return { min: 0, max: 1, step: 0.01 };
   };
 
   return (
@@ -294,8 +293,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               // Handle number values with slider
               if (typeof value === 'number' || (typeof value === 'object' && value !== null && 'value' in value)) {
                 const numValue = typeof value === 'number' ? value : value.value;
-                const { min, max } = getMinMaxForParam(value);
-                const step = getStepForParam(key, value);
+                const { min, max, step } = getParamMeta(key, value);
 
                 return (
                   <ParameterControl

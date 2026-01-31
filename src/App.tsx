@@ -42,8 +42,6 @@ function App() {
   const [midiAssignments, setMidiAssignments] = useState<ReadonlyArray<MidiCCAssignment>>([]);
   const [midiLearnState, setMidiLearnState] = useState<MidiLearnState>('idle');
   const [activeLearningParam, setActiveLearningParam] = useState<string | null>(null);
-  // Force update counter for ControlPanel when MIDI changes params
-  const [paramUpdateKey, setParamUpdateKey] = useState(0);
 
   // Use refs for managers to avoid re-renders
   const storeRef = useRef<Store | null>(null);
@@ -73,8 +71,6 @@ function App() {
           }
           // Dispatch event for ControlPanel sync
           window.dispatchEvent(new ParameterUpdateEvent({ name: parameterName, value }));
-          // Force update ControlPanel
-          setParamUpdateKey(prev => prev + 1);
         },
       }
     );
@@ -239,7 +235,6 @@ function App() {
             <>
               {useCustomPanel ? (
                 <ControlPanel
-                  key={paramUpdateKey}
                   pattern={currentPattern}
                   p5={null}
                   devices={devices}

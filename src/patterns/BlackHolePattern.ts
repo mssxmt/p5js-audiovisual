@@ -119,6 +119,20 @@ export class BlackHolePattern extends BasePattern {
   }
 
   /**
+   * Get parameter metadata for UI controls
+   */
+  getParamMeta(): Record<string, { min: number; max: number; step: number }> {
+    return {
+      gravity: { min: -100, max: 100, step: 0.01 },
+      noiseIntensity: { min: 0, max: 1, step: 0.01 },
+      particleCount: { min: 1, max: 2000, step: 1 },
+      trailAlpha: { min: 0, max: 1, step: 0.01 },
+      trailLength: { min: 0, max: 100, step: 1 },
+      backgroundAlpha: { min: 0, max: 1, step: 0.01 },
+    };
+  }
+
+  /**
    * Get MIDI CC mappings for this pattern
    * Returns array of mappings defining which CC controls which parameters
    */
