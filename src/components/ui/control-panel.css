@@ -1,0 +1,380 @@
+/* Control Panel - Dark Theme with Smooth Animations */
+
+.control-panel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 340px;
+  max-height: calc(100vh - 40px);
+  background: linear-gradient(145deg, #1a1a2e 0%, #16162a 100%);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+              0 0 0 1px rgba(255, 255, 255, 0.05),
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  z-index: 1000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Header */
+.control-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.control-panel-header h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e0e0e0;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+/* Content */
+.control-panel-content {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: calc(100vh - 120px);
+}
+
+.control-panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.control-panel-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.control-panel-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.control-panel-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Sections */
+.control-section {
+  margin-bottom: 20px;
+}
+
+.control-section:last-child {
+  margin-bottom: 0;
+}
+
+.control-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Control Row */
+.control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  gap: 12px;
+}
+
+.control-row label {
+  font-size: 12px;
+  color: #b0b0b0;
+  font-weight: 500;
+  min-width: 70px;
+}
+
+.control-select {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='rgba(255,255,255,0.5)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+}
+
+.control-select:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.control-select:focus {
+  outline: none;
+  border-color: rgba(100, 150, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(100, 150, 255, 0.1);
+}
+
+.control-select option {
+  background: #1a1a2e;
+  color: #e0e0e0;
+}
+
+/* MIDI Learning Status */
+.midi-learning-status {
+  padding: 10px 12px;
+  background: rgba(100, 150, 255, 0.1);
+  border: 1px solid rgba(100, 150, 255, 0.3);
+  border-radius: 8px;
+  font-size: 11px;
+  color: #a0b4ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: rgba(100, 150, 255, 0.3);
+    box-shadow: 0 0 0 0 rgba(100, 150, 255, 0);
+  }
+  50% {
+    border-color: rgba(100, 150, 255, 0.6);
+    box-shadow: 0 0 0 4px rgba(100, 150, 255, 0);
+  }
+}
+
+.midi-learning-status .blink {
+  animation: blink-text 1s infinite;
+}
+
+@keyframes blink-text {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Parameter Control */
+.parameter-control {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.parameter-control:last-child {
+  border-bottom: none;
+}
+
+.parameter-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.parameter-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #c0c0c0;
+}
+
+.parameter-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Slider */
+.slider-container {
+  flex: 1;
+}
+
+.slider-label {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 4px;
+}
+
+.slider-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slider-track {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.slider-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #648aff 0%, #a855f7 100%);
+  border-radius: 2px;
+  transition: width 0.1s ease;
+}
+
+.slider-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  margin: 0;
+}
+
+.slider-input:disabled {
+  cursor: not-allowed;
+}
+
+.slider-value {
+  min-width: 50px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 500;
+  color: #808080;
+  font-variant-numeric: tabular-nums;
+}
+
+/* MIDI Learn Button */
+.midi-learn-button {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.midi-learn-button:hover {
+  border-color: rgba(100, 150, 255, 0.5);
+  background: rgba(100, 150, 255, 0.1);
+  transform: scale(1.05);
+}
+
+.midi-learn-button:active {
+  transform: scale(0.95);
+}
+
+.midi-learn-button .midi-learn-icon {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.midi-learn-button.assigned {
+  border-color: rgba(100, 255, 150, 0.5);
+  background: rgba(100, 255, 150, 0.1);
+}
+
+.midi-learn-button.assigned .midi-learn-icon {
+  color: #64ff96;
+}
+
+.midi-learn-button.learning {
+  border-color: #648aff;
+  background: rgba(100, 150, 255, 0.2);
+  animation: learn-pulse 1s infinite;
+}
+
+.midi-learn-button.learning .midi-learn-icon {
+  color: #648aff;
+  animation: learn-icon-blink 0.5s infinite;
+}
+
+@keyframes learn-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(100, 150, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(100, 150, 255, 0);
+  }
+}
+
+@keyframes learn-icon-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* MIDI Mapping Display */
+.midi-mapping-display {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.midi-mapping-display.empty {
+  color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.midi-mapping-display.assigned {
+  color: #64ff96;
+  background: rgba(100, 255, 150, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .control-panel {
+    width: calc(100vw - 40px);
+    right: 20px;
+  }
+}

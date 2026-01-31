@@ -301,6 +301,8 @@ export class MidiManager {
       const mappedValue = this.learnManager.mapMidiValue(value, learnAssignment.min, learnAssignment.max);
       const updatedMapping = { ...learnAssignment, currentValue: mappedValue };
       this.events.onCcChange?.(updatedMapping as any);
+      // Notify parameter change for UI sync
+      this.events.onMidiParameterChange?.(learnAssignment.parameterName, mappedValue);
       return;
     }
 
@@ -310,6 +312,8 @@ export class MidiManager {
       const scaledValue = mapping.min + normalized * (mapping.max - mapping.min);
       const updatedMapping = { ...mapping, currentValue: scaledValue };
       this.events.onCcChange?.(updatedMapping);
+      // Notify parameter change for UI sync
+      this.events.onMidiParameterChange?.(mapping.parameterPath, scaledValue);
     }
   }
 

@@ -19,6 +19,7 @@ interface StoreEvents {
   onAudioStateChange?: (state: string) => void;
   onMidiStateChange?: (state: string) => void;
   onPatternChange?: (patternIndex: number) => void;
+  onMidiParameterChange?: (parameterName: string, value: number) => void;
 }
 
 /**
@@ -49,6 +50,9 @@ export class Store {
     this.midi = new MidiManager({
       onStateChange: (state) => {
         this.events.onMidiStateChange?.(state);
+      },
+      onMidiParameterChange: (parameterName, value) => {
+        this.events.onMidiParameterChange?.(parameterName, value);
       },
     });
   }

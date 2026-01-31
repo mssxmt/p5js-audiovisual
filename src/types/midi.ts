@@ -33,6 +33,8 @@ export interface MidiEvents {
   onLearnStart?: (parameterPath: string) => void;
   onLearnCancel?: (parameterPath: string) => void;
   onLearnComplete?: (assignment: any) => void;
+  // MIDI CC to Parameter mapping (for UI sync)
+  onMidiParameterChange?: (parameterName: string, value: number) => void;
 }
 
 /**
