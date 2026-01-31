@@ -136,7 +136,7 @@ export class GargantuaPattern extends BasePattern {
       diskThickness: { min: 1, max: 100, step: 1 },
       diskRotationSpeed: { min: -1, max: 1, step: 0.01 },
       colorTemperature: { min: 0, max: 1, step: 0.01 },
-      lensingIntensity: { min: 0, max: 1, step: 0.01 },
+      lensingIntensity: { min: 0, max: 10, step: 0.01 },
       photonRingIntensity: { min: 0, max: 1, step: 0.01 },
       dopplerRatio: { min: 0, max: 1, step: 0.01 },
       particleCount: { min: 1, max: 2000, step: 1 },

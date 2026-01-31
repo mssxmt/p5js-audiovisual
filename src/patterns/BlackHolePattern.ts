@@ -124,7 +124,7 @@ export class BlackHolePattern extends BasePattern {
   getParamMeta(): Record<string, { min: number; max: number; step: number }> {
     return {
       gravity: { min: -100, max: 100, step: 0.01 },
-      noiseIntensity: { min: 0, max: 1, step: 0.01 },
+      noiseIntensity: { min: 0, max: 100, step: 0.01 },
       particleCount: { min: 1, max: 2000, step: 1 },
       trailAlpha: { min: 0, max: 1, step: 0.01 },
       trailLength: { min: 0, max: 100, step: 1 },
@@ -561,7 +561,7 @@ export class BlackHolePattern extends BasePattern {
       // Draw trail as connected line segments with fading opacity
       for (let i = 0; i < historyLength - 1; i++) {
         const t = i / (historyLength - 1); // 0 (oldest) to 1 (newest)
-        const trailAlpha = alpha * t * 0.8; // Fade from 0 to 80% of particle alpha
+        const trailAlpha = alpha * t * this.params.trailAlpha; // Use parameter trailAlpha
 
         p.stroke(r, g, b, trailAlpha);
         p.strokeWeight(audioSize * t); // Taper size from oldest to newest
