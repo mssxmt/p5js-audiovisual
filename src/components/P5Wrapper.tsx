@@ -6,9 +6,10 @@ import type { IBasePattern, PatternContext, PatternRenderOptions } from '../type
 export interface P5WrapperProps {
   store: Store | null;
   patterns: IBasePattern[];
+  currentPatternIndex?: number;
 }
 
-export const P5Wrapper: React.FC<P5WrapperProps> = ({ store, patterns }) => {
+export const P5Wrapper: React.FC<P5WrapperProps> = ({ store, patterns, currentPatternIndex }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const p5InstanceRef = useRef<p5 | null>(null);
   const currentPatternRef = useRef<IBasePattern | null>(null);
@@ -193,7 +194,12 @@ export const P5Wrapper: React.FC<P5WrapperProps> = ({ store, patterns }) => {
       return;
     }
 
-    const patternIndex = store.getPatternIndex();
+    // Use prop value if provided, otherwise get from store
+    const patternIndex = currentPatternIndex ?? store.getPatternIndex();
+
+    // Debug: Log patterns array
+    console.log('[P5Wrapper] Patterns:', patterns.map((p) => p.config.name));
+    console.log('[P5Wrapper] Pattern index:', patternIndex);
 
     // Skip if pattern index hasn't changed
     if (patternIndex === previousPatternIndexRef.current) {
@@ -212,6 +218,12 @@ export const P5Wrapper: React.FC<P5WrapperProps> = ({ store, patterns }) => {
     const p5Instance = p5InstanceRef.current;
     const previousPattern = currentPatternRef.current;
 
+    console.log('[P5Wrapper] Switching pattern:', {
+      from: previousPattern?.config.name,
+      to: newPattern.config.name,
+      index: validIndex,
+    });
+
     // Clean up previous pattern if exists
     if (previousPattern) {
       cleanupPattern(previousPattern, p5Instance).catch((error) => {
@@ -227,7 +239,7 @@ export const P5Wrapper: React.FC<P5WrapperProps> = ({ store, patterns }) => {
     // Update refs
     currentPatternRef.current = newPattern;
     previousPatternIndexRef.current = validIndex;
-  }, [store, patterns, cleanupPattern, setupPattern]);
+  }, [store, patterns, currentPatternIndex, cleanupPattern, setupPattern]);
 
   return (
     <div

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Store } from './core';
 import { InputManager } from './core/InputManager';
-import { BlackHolePattern } from './patterns';
+import { BlackHolePattern, GargantuaPattern } from './patterns';
 import { StartOverlay } from './components';
 import { P5Wrapper } from './components/P5Wrapper';
 import { LevaPanel } from './components/LevaPanel';
@@ -9,7 +9,10 @@ import type { AudioDeviceInfo } from './types/audio';
 import type { MidiCCMapping, MidiChannelFilter } from './types/midi';
 
 // Available patterns
-const PATTERNS = [new BlackHolePattern()];
+const PATTERNS = [
+  new BlackHolePattern(),   // Key 1: Original black hole
+  new GargantuaPattern(),   // Key 2: Interstellar-style black hole
+];
 
 function App() {
   const [isStarted, setIsStarted] = useState(false);
@@ -154,6 +157,7 @@ function App() {
           <P5Wrapper
             store={storeRef.current}
             patterns={PATTERNS}
+            currentPatternIndex={currentPatternIndex}
           />
           {showLeva && currentPattern && (
             <LevaPanel

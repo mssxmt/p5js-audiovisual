@@ -172,6 +172,9 @@ const createMockP5 = (): p5 => {
     ambientLight: vi.fn(),
     pointLight: vi.fn(),
     emissiveMaterial: vi.fn(),
+    noLights: vi.fn(),
+    lights: vi.fn(),
+    torus: vi.fn(),
   } as unknown as p5;
 
   return mockP5;
@@ -462,7 +465,7 @@ describe('BlackHolePattern', () => {
       pattern.draw(mockP5, options);
 
       // Background uses backgroundAlpha from params (default 0.3)
-      expect(mockP5.background).toHaveBeenCalledWith(0, 0, 0, 0.3 * 255);
+      expect(mockP5.background).toHaveBeenCalledWith(0, 0, 0, 0.8 * 255);
     });
 
     it('should draw event horizon sphere', () => {
@@ -513,7 +516,7 @@ describe('BlackHolePattern', () => {
       pattern.draw(mockP5, options);
 
       // Background uses backgroundColor from params (default 0, 0, 0) with trailAlpha
-      expect(mockP5.background).toHaveBeenCalledWith(0, 0, 0, 0.3 * 255);
+      expect(mockP5.background).toHaveBeenCalledWith(0, 0, 0, 0.8 * 255);
     });
 
     it('should clear background when clearBackground is true', () => {
@@ -539,7 +542,7 @@ describe('BlackHolePattern', () => {
       pattern.draw(mockP5, options);
 
       // Background uses backgroundAlpha from params (default 0.3)
-      expect(mockP5.background).toHaveBeenCalledWith(0, 0, 0, 0.3 * 255);
+      expect(mockP5.background).toHaveBeenCalledWith(0, 0, 0, 0.8 * 255);
     });
   });
 
@@ -702,7 +705,7 @@ describe('BlackHolePattern', () => {
       pattern.draw(mockP5, options);
 
       // Background uses backgroundAlpha from params (default 0.3)
-      expect(mockP5.background).toHaveBeenCalledWith(0, 0, 0, 0.3 * 255);
+      expect(mockP5.background).toHaveBeenCalledWith(0, 0, 0, 0.8 * 255);
     });
   });
 
