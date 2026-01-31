@@ -124,7 +124,7 @@ export class BlackHolePattern extends BasePattern {
   getParamMeta(): Record<string, { min: number; max: number; step: number }> {
     return {
       gravity: { min: -100, max: 100, step: 0.01 },
-      noiseIntensity: { min: 0, max: 100, step: 0.01 },
+      noiseIntensity: { min: 0, max: 1000, step: 0.01 },
       particleCount: { min: 1, max: 2000, step: 1 },
       trailAlpha: { min: 0, max: 1, step: 0.01 },
       trailLength: { min: 0, max: 100, step: 1 },
