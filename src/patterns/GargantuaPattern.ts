@@ -431,8 +431,12 @@ export class GargantuaPattern extends BasePattern {
       // Calculate actual Y position scaled by thickness
       const actualY = particle.y * audioValues.thickness * 2;
 
+      // Expand radius based on thickness (same as main disk)
+      const thicknessExpansion = Math.abs(particle.y) * audioValues.thickness * particle.radius * 0.3;
+      const actualRadius = particle.radius + thicknessExpansion;
+
       // Calculate how far from center (for distortion amount)
-      const distFromCenter = Math.sqrt(particle.radius * particle.radius + actualY * actualY);
+      const distFromCenter = Math.sqrt(actualRadius * actualRadius + actualY * actualY);
       const normalizedDist = distFromCenter / this.params.diskRadius; // 0 to 1
 
       // Lensing distortion: particles further from center get bent more
@@ -442,10 +446,10 @@ export class GargantuaPattern extends BasePattern {
       const bendDirection = particle.y >= 0 ? 1 : -1;
       const yOffset = bendDirection * distortionAmount * 50 * intensity;
 
-      // Calculate position with rotation
-      const x = Math.sin(particle.angle + this.diskRotation) * particle.radius;
+      // Calculate position with rotation and expanded radius
+      const x = Math.sin(particle.angle + this.diskRotation) * actualRadius;
       const y = actualY + yOffset;
-      const z = zPos;
+      const z = Math.cos(particle.angle + this.diskRotation) * actualRadius;
 
       // Get color (slightly dimmed for lensed version)
       const color = this.getAccretionColor(p, particle.radius, audioValues.temperature, 0.2);
@@ -481,10 +485,18 @@ export class GargantuaPattern extends BasePattern {
       const dopplerFactor = (Math.sin(particle.angle + this.diskRotation) + 1) / 2; // 0 to 1
       const dopplerBrightness = 0.7 + dopplerFactor * this.params.dopplerRatio;
 
-      // Calculate position
-      const x = Math.sin(particle.angle + this.diskRotation) * particle.radius;
-      const y = particle.y * audioValues.thickness * 2; // Scale relative Y by thickness
-      const z = zPos;
+      // Calculate thickness offset
+      const actualY = particle.y * audioValues.thickness * 2;
+
+      // Expand in both Y and radius (X) directions based on thickness
+      // Particles further from center Y also get pushed outward in radius
+      const thicknessExpansion = Math.abs(particle.y) * audioValues.thickness * particle.radius * 0.3;
+      const actualRadius = particle.radius + thicknessExpansion;
+
+      // Calculate position with expanded radius
+      const x = Math.sin(particle.angle + this.diskRotation) * actualRadius;
+      const y = actualY;
+      const z = Math.cos(particle.angle + this.diskRotation) * actualRadius;
 
       // Get color
       const color = this.getAccretionColor(p, particle.radius, audioValues.temperature, dopplerFactor * this.params.dopplerRatio);
