@@ -428,4 +428,11 @@ export class MidiManager {
   getActiveLearning(): string | null {
     return this.learnManager.getActiveLearning();
   }
+
+  /**
+   * Set parameter metadata function for MIDI Learn
+   */
+  setParamMetaFn(getParamMeta: (paramName: string) => { min: number; max: number; step: number } | null): void {
+    this.learnManager.setParamMetaFn(getParamMeta);
+  }
 }

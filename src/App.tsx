@@ -117,6 +117,21 @@ function App() {
     };
   }, []);
 
+  // Update MIDI Learn parameter metadata when pattern changes
+  useEffect(() => {
+    const store = storeRef.current;
+    if (!store) return;
+
+    const pattern = PATTERNS[currentPatternIndex];
+    if (pattern && pattern.getParamMeta) {
+      const paramMeta = pattern.getParamMeta();
+      store.midi.setParamMetaFn((paramName: string) => {
+        return paramMeta[paramName] ?? null;
+      });
+      console.log('[App] Updated MIDI Learn parameter metadata for:', pattern.constructor.name);
+    }
+  }, [currentPatternIndex]);
+
   // Handle start
   const handleStart = async () => {
     const store = storeRef.current;

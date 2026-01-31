@@ -10,6 +10,11 @@
 import type { MidiCCAssignment, MidiLearnEvents, MidiLearnState, MidiLearnResult } from '../types/midiAssignment';
 
 /**
+ * Function to get parameter metadata (min, max, step)
+ */
+export type GetParamMetaFn = (paramName: string) => { min: number; max: number; step: number } | null;
+
+/**
  * MidiLearnManager - Manages MIDI Learn functionality
  */
 export class MidiLearnManager {
@@ -17,9 +22,18 @@ export class MidiLearnManager {
   private activeLearning: string | null = null; // parameterPath
   private mappings: Map<string, MidiCCAssignment> = new Map();
   private events: MidiLearnEvents = {};
+  private getParamMeta: GetParamMetaFn;
 
-  constructor(events: MidiLearnEvents = {}) {
+  constructor(events: MidiLearnEvents = {}, getParamMeta: GetParamMetaFn = () => null) {
     this.events = events;
+    this.getParamMeta = getParamMeta;
+  }
+
+  /**
+   * Set parameter metadata function
+   */
+  setParamMetaFn(getParamMeta: GetParamMetaFn): void {
+    this.getParamMeta = getParamMeta;
   }
 
   /**
@@ -90,15 +104,22 @@ export class MidiLearnManager {
 
     console.log(`[MidiLearn] Received MIDI: Ch${channel} CC${ccNumber} → ${this.activeLearning}`);
 
-    // Create assignment
+    // Get parameter metadata for min/max
+    const paramMeta = this.getParamMeta(this.activeLearning);
+    const min = paramMeta?.min ?? 0;
+    const max = paramMeta?.max ?? 1;
+
+    // Create assignment with actual parameter range
     const assignment: MidiCCAssignment = {
       parameterName: this.activeLearning,
       channel,
       ccNumber,
-      min: 0,
-      max: 1,
+      min,
+      max,
       inverted: false,
     };
+
+    console.log(`[MidiLearn] Assignment range: ${min} to ${max}`);
 
     this.completeLearning(assignment);
     return true;
