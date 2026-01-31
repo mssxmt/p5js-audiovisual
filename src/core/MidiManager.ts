@@ -6,6 +6,7 @@ import type {
   MidiState,
   MidiEvents,
 } from '../types/midi';
+import { MidiLearnManager } from './MidiLearnManager';
 
 /**
  * Manages Web MIDI API, CC mappings, and provides MIDI data for visual patterns
@@ -17,6 +18,9 @@ export class MidiManager {
 
   private state: MidiState = 'idle';
   private events: MidiEvents;
+
+  // MIDI Learn manager
+  private learnManager: MidiLearnManager;
 
   // Current MIDI data (updated on MIDI events)
   private currentData: MidiData = {
@@ -33,6 +37,7 @@ export class MidiManager {
 
   constructor(events: MidiEvents = {}) {
     this.events = events;
+    this.learnManager = new MidiLearnManager(events);
   }
 
   /**
@@ -274,13 +279,32 @@ export class MidiManager {
   };
 
   private handleCC(channel: number, ccNumber: number, value: number): void {
+    // Check if in learn mode - let LearnManager handle it
+    if (this.learnManager.isLearning()) {
+      const consumed = this.learnManager.handleMidiInput(channel, ccNumber);
+      if (consumed) {
+        // Learn was complete, now process the CC normally
+        // Fall through to normal processing below
+      }
+    }
+
     const normalized = value / 127;
     const key = `${channel}:${ccNumber}`;
 
     // Update current data
     this.currentData.cc.set(key, normalized);
 
-    // Check if there's a mapping for this CC
+    // Check for Learn Manager assignments
+    const learnAssignment = this.learnManager.getAssignment(key);
+    if (learnAssignment) {
+      // Use Learn Manager assignment
+      const mappedValue = this.learnManager.mapMidiValue(value, learnAssignment.min, learnAssignment.max);
+      const updatedMapping = { ...learnAssignment, currentValue: mappedValue };
+      this.events.onCcChange?.(updatedMapping as any);
+      return;
+    }
+
+    // Check legacy ccMappings for backward compatibility
     const mapping = this.ccMappings.get(key);
     if (mapping) {
       const scaledValue = mapping.min + normalized * (mapping.max - mapping.min);
@@ -350,5 +374,54 @@ export class MidiManager {
   private handleError(error: Error): void {
     this.setState('error');
     this.events.onError?.(error);
+  }
+
+  /**
+   * Get the MIDI Learn manager
+   */
+  getLearnManager(): MidiLearnManager {
+    return this.learnManager;
+  }
+
+  /**
+   * Start MIDI learn mode for a parameter
+   */
+  startLearning(parameterPath: string): void {
+    this.learnManager.startLearning(parameterPath);
+  }
+
+  /**
+   * Cancel current MIDI learn mode
+   */
+  cancelLearning(): void {
+    this.learnManager.cancelLearning();
+  }
+
+  /**
+   * Get all MIDI learn assignments
+   */
+  getLearnAssignments(): Map<string, import('../types/midiAssignment').MidiCCAssignment> {
+    return this.learnManager.getAssignments();
+  }
+
+  /**
+   * Remove MIDI learn assignment for a parameter
+   */
+  removeLearnAssignment(parameterPath: string): void {
+    this.learnManager.removeAssignment(parameterPath);
+  }
+
+  /**
+   * Get learn state
+   */
+  getLearnState(): import('../types/midiAssignment').MidiLearnState {
+    return this.learnManager.getState();
+  }
+
+  /**
+   * Get active learning parameter
+   */
+  getActiveLearning(): string | null {
+    return this.learnManager.getActiveLearning();
   }
 }

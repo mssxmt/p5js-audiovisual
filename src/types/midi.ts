@@ -29,6 +29,10 @@ export interface MidiEvents {
   onProgramChange?: (program: number) => void;
   onDeviceChange?: (devices: MidiDevice[]) => void;
   onError?: (error: Error) => void;
+  // MIDI Learn events
+  onLearnStart?: (parameterPath: string) => void;
+  onLearnCancel?: (parameterPath: string) => void;
+  onLearnComplete?: (assignment: any) => void;
 }
 
 /**
