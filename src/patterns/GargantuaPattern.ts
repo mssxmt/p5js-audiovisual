@@ -42,7 +42,7 @@ interface GargantuaParams {
 interface PlasmaParticle {
   angle: number;              // Angle in disk (0-2PI)
   radius: number;             // Distance from center
-  y: number;                  // Fixed Y position (thickness offset)
+  y: number;                  // Relative Y position (-0.5 to 0.5) for thickness
   speed: number;              // Orbital speed
   brightness: number;         // Particle brightness
   size: number;               // Particle size
@@ -222,8 +222,8 @@ export class GargantuaPattern extends BasePattern {
     const radiusBias = Math.pow(p.random(), 2); // Bias toward inner edge
     const radius = MIN_DISK_RADIUS + radiusBias * (this.params.diskRadius - MIN_DISK_RADIUS);
 
-    // Fixed Y position for thickness (distributed evenly across disk thickness)
-    const y = (p.random() - 0.5) * this.params.diskThickness * 2;
+    // Relative Y position for thickness (-0.5 to 0.5), will be scaled by diskThickness during render
+    const y = p.random() - 0.5;
 
     // Orbital speed (faster near center, Keplerian-ish)
     const speed = 0.5 + (1 - radiusBias) * 1.5;
@@ -428,8 +428,11 @@ export class GargantuaPattern extends BasePattern {
       // Only lens the back side of the disk
       if (zPos >= 0) continue;
 
+      // Calculate actual Y position scaled by thickness
+      const actualY = particle.y * audioValues.thickness * 2;
+
       // Calculate how far from center (for distortion amount)
-      const distFromCenter = Math.sqrt(particle.radius * particle.radius + particle.y * particle.y);
+      const distFromCenter = Math.sqrt(particle.radius * particle.radius + actualY * actualY);
       const normalizedDist = distFromCenter / this.params.diskRadius; // 0 to 1
 
       // Lensing distortion: particles further from center get bent more
@@ -441,7 +444,7 @@ export class GargantuaPattern extends BasePattern {
 
       // Calculate position with rotation
       const x = Math.sin(particle.angle + this.diskRotation) * particle.radius;
-      const y = particle.y + yOffset;
+      const y = actualY + yOffset;
       const z = zPos;
 
       // Get color (slightly dimmed for lensed version)
@@ -480,7 +483,7 @@ export class GargantuaPattern extends BasePattern {
 
       // Calculate position
       const x = Math.sin(particle.angle + this.diskRotation) * particle.radius;
-      const y = particle.y; // Use fixed Y position (no flickering)
+      const y = particle.y * audioValues.thickness * 2; // Scale relative Y by thickness
       const z = zPos;
 
       // Get color
