@@ -133,7 +133,7 @@ export class GargantuaPattern extends BasePattern {
   getParamMeta(): Record<string, { min: number; max: number; step: number }> {
     return {
       diskRadius: { min: 10, max: 500, step: 1 },
-      diskThickness: { min: 1, max: 100, step: 1 },
+      diskThickness: { min: 1, max: 1000, step: 1 },
       diskRotationSpeed: { min: -1, max: 1, step: 0.01 },
       colorTemperature: { min: 0, max: 1, step: 0.01 },
       lensingIntensity: { min: 0, max: 10, step: 0.01 },
