@@ -28,6 +28,8 @@ interface GargantuaParams {
   photonRingIntensity: number;// Photon ring brightness (0-1)
   dopplerRatio: number;       // Doppler beaming ratio (0-1, asymmetry)
   particleCount: number;      // Number of particles (50-500)
+  rotationX: number;          // Vertical rotation (-PI/2 to PI/2)
+  rotationY: number;          // Horizontal rotation (0 to 2PI)
   backgroundColor: {
     r: number;
     g: number;
@@ -70,6 +72,8 @@ const DEFAULT_PARAMS: GargantuaParams = {
   photonRingIntensity: 0.8,
   dopplerRatio: 0.4,
   particleCount: 200,
+  rotationX: Math.PI * 0.35,
+  rotationY: 0,
   backgroundColor: { r: 0, g: 0, b: 0 },
   backgroundAlpha: 0.9,
 };
@@ -115,6 +119,8 @@ export class GargantuaPattern extends BasePattern {
       photonRingIntensity: this.params.photonRingIntensity,
       dopplerRatio: this.params.dopplerRatio,
       particleCount: this.params.particleCount,
+      rotationX: this.params.rotationX,
+      rotationY: this.params.rotationY,
       backgroundColor: this.params.backgroundColor,
       backgroundAlpha: this.params.backgroundAlpha,
     };
@@ -140,56 +146,18 @@ export class GargantuaPattern extends BasePattern {
       photonRingIntensity: { min: 0, max: 1, step: 0.01 },
       dopplerRatio: { min: 0, max: 1, step: 0.01 },
       particleCount: { min: 1, max: 2000, step: 1 },
+      rotationX: { min: -Math.PI / 2, max: Math.PI / 2, step: 0.01 },
+      rotationY: { min: 0, max: Math.PI * 2, step: 0.01 },
       backgroundAlpha: { min: 0, max: 1, step: 0.01 },
     };
   }
 
   /**
    * Get MIDI CC mappings for this pattern
+   * Returns empty array - use MIDI Learn to assign mappings dynamically
    */
   getMidiMappings(): MidiCCMapping[] {
-    return [
-      {
-        channel: 0,
-        ccNumber: 1,
-        parameterPath: 'diskRadius',
-        min: 50,
-        max: 200,
-        currentValue: this.params.diskRadius,
-      },
-      {
-        channel: 0,
-        ccNumber: 2,
-        parameterPath: 'diskThickness',
-        min: 1,
-        max: 10,
-        currentValue: this.params.diskThickness,
-      },
-      {
-        channel: 0,
-        ccNumber: 3,
-        parameterPath: 'colorTemperature',
-        min: 0,
-        max: 1,
-        currentValue: this.params.colorTemperature,
-      },
-      {
-        channel: 0,
-        ccNumber: 4,
-        parameterPath: 'lensingIntensity',
-        min: 0,
-        max: 1,
-        currentValue: this.params.lensingIntensity,
-      },
-      {
-        channel: 0,
-        ccNumber: 5,
-        parameterPath: 'photonRingIntensity',
-        min: 0,
-        max: 1,
-        currentValue: this.params.photonRingIntensity,
-      },
-    ];
+    return [];
   }
 
   /**
@@ -250,26 +218,19 @@ export class GargantuaPattern extends BasePattern {
     const trebleLevel = this.getAudioBand(context.audio, 'treble');
     const volumeLevel = context.audio.level;
 
-    // Get MIDI overrides
-    const midiDiskRadius = this.getCCValue(context.midi, 0, 1, this.params.diskRadius);
-    const midiThickness = this.getCCValue(context.midi, 0, 2, this.params.diskThickness);
-    const midiTemperature = this.getCCValue(context.midi, 0, 3, this.params.colorTemperature);
-    const midiLensing = this.getCCValue(context.midi, 0, 4, this.params.lensingIntensity);
-    const midiPhotonRing = this.getCCValue(context.midi, 0, 5, this.params.photonRingIntensity);
-
     // Audio reactivity: Bass slightly increases rotation speed (smooth) and thickness
     // Reduced rotation variation for smoothness: 0.8x to 1.2x instead of 0.5x to 3.5x
     const audioRotationSpeed = this.params.diskRotationSpeed * (0.8 + bassLevel * 0.4);
-    const audioThickness = midiThickness * (0.5 + bassLevel * 2);
+    const audioThickness = this.params.diskThickness * (0.5 + bassLevel * 2);
 
     // Audio reactivity: Volume affects disk radius
-    const audioDiskRadius = midiDiskRadius * (0.8 + volumeLevel * 0.5);
+    const audioDiskRadius = this.params.diskRadius * (0.8 + volumeLevel * 0.5);
 
     // Audio reactivity: Mid affects color temperature
-    const audioTemperature = midiTemperature * (0.5 + midLevel);
+    const audioTemperature = this.params.colorTemperature * (0.5 + midLevel);
 
     // Audio reactivity: Treble affects photon ring
-    const audioPhotonRing = midiPhotonRing * (0.5 + trebleLevel * 2);
+    const audioPhotonRing = this.params.photonRingIntensity * (0.5 + trebleLevel * 2);
 
     // Update disk rotation
     this.diskRotation += audioRotationSpeed * 0.02;
@@ -288,7 +249,7 @@ export class GargantuaPattern extends BasePattern {
       diskRadius: audioDiskRadius,
       thickness: audioThickness,
       temperature: audioTemperature,
-      lensing: midiLensing,
+      lensing: this.params.lensingIntensity,
       photonRing: audioPhotonRing,
       bassLevel,
       midLevel,
@@ -386,8 +347,9 @@ export class GargantuaPattern extends BasePattern {
 
     p.push();
 
-    // Set up camera angle (tilted to see disk from side)
-    p.rotateX(Math.PI * 0.35); // Tilt about 63 degrees for better disk visibility
+    // Set up camera angle from params
+    p.rotateX(this.params.rotationX);
+    p.rotateY(this.params.rotationY);
 
     // Draw in back-to-front order for proper layering
     // 1. Gravitational lensing (back of disk bent over/under)
