@@ -1,13 +1,14 @@
 /**
- * DataPattern - Minimal data visualization inspired by test pattern aesthetics
+ * DataPattern - Complex data visualization with flowing information streams
  *
  * Features:
  * - Monochrome color scheme (black/white/gray)
- * - Grid-based geometric patterns
- * - Data stream visualization
- * - Rhythmic pulses and scanning lines
- * - Text/number displays
- * - Audio-reactive elements
+ * - Flowing coordinate data streams
+ * - Frequency spectrum visualization
+ * - Numerical cascades
+ * - Multiple data layers
+ * - Fine-grained details
+ * - Audio-reactive intensity
  */
 
 import type p5 from 'p5';
@@ -19,24 +20,44 @@ import type { MidiCCMapping } from '../types/midi';
  * Data pattern configuration parameters
  */
 interface DataParams {
-  gridRows: number;           // Grid row count (1-20)
-  gridCols: number;           // Grid column count (1-20)
-  lineDensity: number;        // Line density (0-1)
-  pulseSpeed: number;         // Pulse animation speed (0-2)
-  dataDensity: number;        // Data display density (0-1)
-  scanlineIntensity: number;  // Scanline effect intensity (0-1)
+  dataSpeed: number;          // Data flow speed (0-2)
+  dataDensity: number;        // Amount of data elements (0-1)
+  spectrumIntensity: number;   // Frequency spectrum intensity (0-1)
+  coordinateFlow: number;      // Coordinate data flow (0-1)
+  numericalDensity: number;   // Number display density (0-1)
+  lineGranularity: number;    // Line detail level (0-1)
   backgroundColor: { r: number; g: number; b: number };
-  backgroundAlpha: number;    // Background alpha (0-1)
+  backgroundAlpha: number;
 }
 
 /**
- * Data point for visualization
+ * Binary data stream element
  */
-interface DataPoint {
-  value: number;              // 0 or 1
+interface BinaryElement {
+  value: number;
+  position: number;
+  speed: number;
+}
+
+/**
+ * Floating number data
+ */
+interface NumberElement {
+  value: number;
+  target: number;
   x: number;
   y: number;
-  lastChange: number;         // Frame when last changed
+  speed: number;
+  digits: number;
+}
+
+/**
+ * Frequency bar data
+ */
+interface FreqBar {
+  x: number;
+  height: number;
+  targetHeight: number;
 }
 
 /**
@@ -44,7 +65,7 @@ interface DataPoint {
  */
 const PATTERN_CONFIG: PatternConfig = {
   name: 'DataPattern',
-  description: 'Minimal data visualization with geometric patterns',
+  description: 'Complex data visualization with flowing information',
   version: '1.0.0',
 };
 
@@ -52,31 +73,30 @@ const PATTERN_CONFIG: PatternConfig = {
  * Default parameters
  */
 const DEFAULT_PARAMS: DataParams = {
-  gridRows: 8,
-  gridCols: 12,
-  lineDensity: 0.5,
-  pulseSpeed: 0.5,
-  dataDensity: 0.3,
-  scanlineIntensity: 0.2,
+  dataSpeed: 0.5,
+  dataDensity: 0.5,
+  spectrumIntensity: 0.7,
+  coordinateFlow: 0.5,
+  numericalDensity: 0.4,
+  lineGranularity: 0.6,
   backgroundColor: { r: 0, g: 0, b: 0 },
-  backgroundAlpha: 0.95,
+  backgroundAlpha: 0.9,
 };
 
 /**
- * DataPattern - Minimal geometric data visualization
+ * DataPattern - Complex flowing data visualization
  */
 export class DataPattern extends BasePattern {
   protected params: DataParams;
-  protected dataPoints: DataPoint[] = [];
-  protected scanlineY: number = 0;
-  protected pulsePhase: number = 0;
 
-  // Grid cell size
-  private cellWidth: number = 0;
-  private cellHeight: number = 0;
+  // Data streams
+  private binaryStreams: BinaryElement[][] = [];
+  private numberElements: NumberElement[] = [];
+  private freqBars: FreqBar[] = [];
 
-  // Random binary data stream
-  private dataStream: number[] = [];
+  // Layout
+  private readonly spectrumBars = 64;
+  private readonly streamCount = 8;
 
   constructor() {
     super(PATTERN_CONFIG);
@@ -86,75 +106,107 @@ export class DataPattern extends BasePattern {
   /**
    * Setup pattern resources
    */
-  override setup(p: p5): void {
-    this.resize(p, p.width, p.height);
-    this.initializeDataPoints();
-    this.initializeDataStream();
+  override setup(_p: p5): void {
+    this.initializeBinaryStreams();
+    this.initializeNumberElements();
+    this.initializeFreqBars();
   }
 
   /**
-   * Resize handler
+   * Initialize binary data streams
    */
-  override resize(_p: p5, width: number, height: number): void {
-    this.cellWidth = width / this.params.gridCols;
-    this.cellHeight = height / this.params.gridRows;
-  }
-
-  /**
-   * Initialize data points grid
-   */
-  private initializeDataPoints(): void {
-    this.dataPoints = [];
-    for (let row = 0; row < this.params.gridRows; row++) {
-      for (let col = 0; col < this.params.gridCols; col++) {
-        this.dataPoints.push({
+  private initializeBinaryStreams(): void {
+    this.binaryStreams = [];
+    for (let i = 0; i < this.streamCount; i++) {
+      const stream: BinaryElement[] = [];
+      const elements = Math.floor(20 + Math.random() * 40);
+      for (let j = 0; j < elements; j++) {
+        stream.push({
           value: Math.random() > 0.5 ? 1 : 0,
-          x: col,
-          y: row,
-          lastChange: 0,
+          position: j,
+          speed: 0.2 + Math.random() * 0.5,
         });
       }
+      this.binaryStreams.push(stream);
     }
   }
 
   /**
-   * Initialize random data stream (binary)
+   * Initialize floating number elements
    */
-  private initializeDataStream(): void {
-    this.dataStream = [];
-    const streamLength = 100;
-    for (let i = 0; i < streamLength; i++) {
-      this.dataStream.push(Math.random() > 0.5 ? 1 : 0);
+  private initializeNumberElements(): void {
+    this.numberElements = [];
+    const count = 15;
+    for (let i = 0; i < count; i++) {
+      this.numberElements.push({
+        value: Math.random() * 1000,
+        target: Math.random() * 1000,
+        x: Math.random(),
+        y: Math.random(),
+        speed: 0.01 + Math.random() * 0.03,
+        digits: 4 + Math.floor(Math.random() * 4),
+      });
+    }
+  }
+
+  /**
+   * Initialize frequency bars
+   */
+  private initializeFreqBars(): void {
+    this.freqBars = [];
+    for (let i = 0; i < this.spectrumBars; i++) {
+      this.freqBars.push({
+        x: (i / this.spectrumBars),
+        height: 0,
+        targetHeight: 0,
+      });
     }
   }
 
   /**
    * Update pattern state
    */
-  override update(_p: p5, context: PatternContext): void {
+  override update(p: p5, context: PatternContext): void {
     const bassLevel = this.getAudioBand(context.audio, 'bass');
-    const midLevel = this.getAudioBand(context.audio, 'mid');
 
-    // Update pulse phase
-    this.pulsePhase += 0.02 * this.params.pulseSpeed * (1 + bassLevel);
+    // Update binary streams
+    const streamSpeed = this.params.dataSpeed * (1 + bassLevel * 0.5);
+    for (let s = 0; s < this.binaryStreams.length; s++) {
+      const stream = this.binaryStreams[s];
+      for (let i = 0; i < stream.length; i++) {
+        const element = stream[i];
+        element.position -= element.speed * streamSpeed;
 
-    // Update scanline position
-    this.scanlineY = (this.scanlineY + 2 + this.params.pulseSpeed * 3) % _p.height;
-
-    // Update data points randomly
-    const changeProbability = 0.02 * this.params.dataDensity * (1 + midLevel);
-    for (const point of this.dataPoints) {
-      if (Math.random() < changeProbability) {
-        point.value = Math.random() > 0.5 ? 1 : 0;
-        point.lastChange = _p.frameCount;
+        // Reset when off screen
+        if (element.position < -1) {
+          element.position = stream.length + Math.random() * 5;
+          element.value = Math.random() > 0.7 ? 1 : 0;
+        }
       }
     }
 
-    // Update data stream
-    if (_p.frameCount % 10 === 0) {
-      // Shift and add new bit
-      this.dataStream.shift();
-      this.dataStream.push(Math.random() > 0.5 ? 1 : 0);
+    // Update number elements
+    for (const elem of this.numberElements) {
+      // Move toward target
+      elem.value += (elem.target - elem.value) * 0.05;
+      elem.x += Math.sin(p.frameCount * 0.01 + elem.y * 10) * 0.002;
+      elem.y += 0.001;
+
+      if (elem.y > 1) elem.y -= 1;
+
+      // Change target randomly
+      if (Math.random() < 0.02 * this.params.dataDensity) {
+        elem.target = Math.random() * 9999;
+      }
+    }
+
+    // Update frequency bars based on audio
+    const spectrumData = context.audio.spectrum || new Uint8Array(128);
+    for (let i = 0; i < this.freqBars.length; i++) {
+      const spectrumIndex = Math.floor((i / this.freqBars.length) * spectrumData.length);
+      const spectrumValue = spectrumData[spectrumIndex] / 255;
+      this.freqBars[i].targetHeight = spectrumValue * this.params.spectrumIntensity;
+      this.freqBars[i].height += (this.freqBars[i].targetHeight - this.freqBars[i].height) * 0.3;
     }
   }
 
@@ -166,23 +218,20 @@ export class DataPattern extends BasePattern {
 
     p.push();
 
-    // Get audio-reactive values
-    const pulseIntensity = (Math.sin(this.pulsePhase) + 1) / 2;
+    // Draw frequency spectrum at bottom
+    this.drawFrequencySpectrum(p);
 
-    // Draw grid lines
-    this.drawGridLines(p);
+    // Draw coordinate data streams
+    this.drawCoordinateStreams(p);
 
-    // Draw data points
-    this.drawDataPoints(p, pulseIntensity);
+    // Draw numerical cascades
+    this.drawNumericalCascades(p);
 
-    // Draw data stream text
-    this.drawDataStream(p);
+    // Draw fine horizontal lines
+    this.drawFineLines(p);
 
-    // Draw scanline
-    this.drawScanline(p);
-
-    // Draw border frame
-    this.drawBorderFrame(p);
+    // Draw corner markers
+    this.drawCornerMarkers(p);
 
     p.pop();
   }
@@ -201,107 +250,120 @@ export class DataPattern extends BasePattern {
   }
 
   /**
-   * Draw grid lines
+   * Draw frequency spectrum
    */
-  private drawGridLines(p: p5): void {
-    const cols = Math.floor(this.params.lineDensity * 10) + 1;
+  private drawFrequencySpectrum(p: p5): void {
+    const barWidth = p.width / this.spectrumBars;
+    const maxHeight = p.height * 0.3;
 
-    p.stroke(255, 255, 255, 30);
-    p.strokeWeight(1);
+    p.noStroke();
+    for (let i = 0; i < this.freqBars.length; i++) {
+      const bar = this.freqBars[i];
+      const barHeight = bar.height * maxHeight;
+      const x = bar.x * p.width;
+      const y = p.height - barHeight;
 
-    // Vertical lines
-    for (let i = 0; i <= cols; i++) {
-      const x = (i / cols) * p.width;
-      p.line(x, 0, x, p.height);
-    }
-
-    // Horizontal lines
-    for (let i = 0; i <= cols; i++) {
-      const y = (i / cols) * p.height;
-      p.line(0, y, p.width, y);
+      // Gradient from white to gray
+      const brightness = 200 + bar.height * 55;
+      p.fill(brightness, barHeight * 100, barHeight * 100);
+      p.rect(x, y, barWidth - 1, barHeight);
     }
   }
 
   /**
-   * Draw data points (grid cells)
+   * Draw coordinate data streams
    */
-  private drawDataPoints(p: p5, pulseIntensity: number): void {
-    const pointSize = Math.min(this.cellWidth, this.cellHeight) * 0.6;
+  private drawCoordinateStreams(p: p5): void {
+    const streamCount = Math.floor(this.streamCount * this.params.coordinateFlow);
 
-    for (const point of this.dataPoints) {
-      const x = point.x * this.cellWidth + this.cellWidth / 2;
-      const y = point.y * this.cellHeight + this.cellHeight / 2;
+    p.textFont('monospace');
+    p.textSize(10);
+    p.fill(255, 255, 255, 180);
 
-      // Pulse effect for active points
-      const size = point.value === 1
-        ? pointSize * (0.8 + pulseIntensity * 0.4)
-        : pointSize * 0.3;
+    for (let s = 0; s < streamCount; s++) {
+      const stream = this.binaryStreams[s];
+      const baseX = (s / this.streamCount) * p.width;
 
-      // Alpha based on value and recency
-      const timeSinceChange = p.frameCount - point.lastChange;
-      const alpha = point.value === 1
-        ? 255 - Math.min(timeSinceChange * 5, 150)
-        : 50 + Math.sin(p.frameCount * 0.05 + point.x + point.y) * 30;
+      for (let i = 0; i < stream.length; i++) {
+        const element = stream[i];
+        const y = 20 + (i % 20) * 12;
+        const alpha = element.value === 1 ? 255 : 80;
 
-      if (point.value === 1) {
         p.fill(255, 255, 255, alpha);
-        p.noStroke();
-        p.rectMode(p.CENTER);
-        p.rect(x, y, size, size);
-      } else {
-        p.stroke(255, 255, 255, alpha);
-        p.strokeWeight(1);
-        p.point(x, y);
+        p.text(element.value.toString(), baseX + element.position * 8, y);
       }
     }
   }
 
   /**
-   * Draw data stream as binary text
+   * Draw numerical cascades
    */
-  private drawDataStream(p: p5): void {
-    const displayLength = Math.floor(20 + this.params.dataDensity * 80);
-    const startY = 30;
-    const lineHeight = 14;
+  private drawNumericalCascades(p: p5): void {
+    const count = Math.floor(this.numberElements.length * this.params.numericalDensity);
 
-    p.fill(255, 255, 255, 150);
-    p.noStroke();
     p.textFont('monospace');
-    p.textSize(10);
+    p.textSize(9);
+    p.fill(200, 200, 200);
 
-    for (let i = 0; i < displayLength && i < this.dataStream.length; i++) {
-      const bit = this.dataStream[this.dataStream.length - 1 - i];
-      const x = 20 + (i % 40) * 12;
-      const y = startY + Math.floor(i / 40) * lineHeight;
+    for (let i = 0; i < count; i++) {
+      const elem = this.numberElements[i];
+      const x = elem.x * p.width;
+      const y = p.height * 0.7 + elem.y * p.height * 0.25;
 
-      // Highlight recent changes
-      const highlight = i < 10 ? 255 : 150;
-      p.fill(255, 255, 255, highlight);
-      p.text(bit.toString(), x, y);
+      // Format number with leading zeros
+      const str = Math.floor(elem.value).toString().padStart(elem.digits, '0');
+      p.text(str, x, y, elem.digits * 5 + 2);
     }
   }
 
   /**
-   * Draw scanning line
+   * Draw fine horizontal lines
    */
-  private drawScanline(p: p5): void {
-    if (this.params.scanlineIntensity < 0.1) return;
+  private drawFineLines(p: p5): void {
+    const lineCount = Math.floor(30 * this.params.lineGranularity);
+    const spacing = p.height / lineCount;
 
-    const alpha = this.params.scanlineIntensity * 100;
-    p.stroke(255, 255, 255, alpha);
-    p.strokeWeight(2);
-    p.line(0, this.scanlineY, p.width, this.scanlineY);
+    p.stroke(255, 255, 255, 30);
+    p.strokeWeight(1);
+
+    for (let i = 0; i < lineCount; i++) {
+      const y = i * spacing;
+      // Random gaps in lines
+      if (Math.random() > 0.1) {
+        p.line(0, y, p.width, y);
+      }
+    }
   }
 
   /**
-   * Draw border frame
+   * Draw corner coordinate markers
    */
-  private drawBorderFrame(p: p5): void {
-    const margin = 20;
-    p.stroke(255, 255, 255, 100);
-    p.strokeWeight(2);
-    p.noFill();
-    p.rect(margin, margin, p.width - margin * 2, p.height - margin * 2);
+  private drawCornerMarkers(p: p5): void {
+    const margin = 15;
+    p.fill(255, 255, 255, 150);
+    p.noStroke();
+    p.textFont('monospace');
+    p.textSize(9);
+
+    // Top-left: X coordinate
+    const x = (p.frameCount * 0.5) % p.width;
+    p.text(`X:${x.toString().padStart(4, '0')}`, margin, margin);
+
+    // Top-right: Y coordinate
+    const y = (p.frameCount * 0.3) % p.height;
+    p.textAlign(p.RIGHT);
+    p.text(`Y:${y.toString().padStart(4, '0')}`, p.width - margin, margin);
+    p.textAlign(p.LEFT);
+
+    // Bottom-left: Time
+    const time = Math.floor(p.frameCount / 60);
+    const frames = p.frameCount % 60;
+    p.text(`T:${time.toString().padStart(3, '0')}:${frames.toString().padStart(2, '0')}`, margin, p.height - margin);
+
+    // Bottom-right: Frame count
+    p.textAlign(p.RIGHT);
+    p.text(`F:${p.frameCount.toString().padStart(6, '0')}`, p.width - margin, p.height - margin);
+    p.textAlign(p.LEFT);
   }
 
   /**
@@ -315,28 +377,20 @@ export class DataPattern extends BasePattern {
    * Update pattern parameters
    */
   setParams(params: Partial<DataParams>): void {
-    const oldRows = this.params.gridRows;
-    const oldCols = this.params.gridCols;
-
     this.params = { ...this.params, ...params };
-
-    // Recalculate grid if dimensions changed
-    if (this.params.gridRows !== oldRows || this.params.gridCols !== oldCols) {
-      this.initializeDataPoints();
-    }
   }
 
   /**
-   * Get parameter metadata for UI controls
+   * Get parameter metadata
    */
   getParamMeta(): Record<string, { min: number; max: number; step: number }> {
     return {
-      gridRows: { min: 1, max: 20, step: 1 },
-      gridCols: { min: 1, max: 20, step: 1 },
-      lineDensity: { min: 0, max: 1, step: 0.01 },
-      pulseSpeed: { min: 0, max: 2, step: 0.01 },
+      dataSpeed: { min: 0, max: 2, step: 0.01 },
       dataDensity: { min: 0, max: 1, step: 0.01 },
-      scanlineIntensity: { min: 0, max: 1, step: 0.01 },
+      spectrumIntensity: { min: 0, max: 1, step: 0.01 },
+      coordinateFlow: { min: 0, max: 1, step: 0.01 },
+      numericalDensity: { min: 0, max: 1, step: 0.01 },
+      lineGranularity: { min: 0, max: 1, step: 0.01 },
       backgroundAlpha: { min: 0, max: 1, step: 0.01 },
     };
   }
@@ -349,26 +403,26 @@ export class DataPattern extends BasePattern {
       {
         channel: 0,
         ccNumber: 1,
-        parameterPath: 'lineDensity',
+        parameterPath: 'dataSpeed',
         min: 0,
-        max: 1,
-        currentValue: this.params.lineDensity,
+        max: 2,
+        currentValue: this.params.dataSpeed,
       },
       {
         channel: 0,
         ccNumber: 2,
-        parameterPath: 'pulseSpeed',
-        min: 0,
-        max: 2,
-        currentValue: this.params.pulseSpeed,
-      },
-      {
-        channel: 0,
-        ccNumber: 3,
         parameterPath: 'dataDensity',
         min: 0,
         max: 1,
         currentValue: this.params.dataDensity,
+      },
+      {
+        channel: 0,
+        ccNumber: 3,
+        parameterPath: 'spectrumIntensity',
+        min: 0,
+        max: 1,
+        currentValue: this.params.spectrumIntensity,
       },
     ];
   }
@@ -377,7 +431,8 @@ export class DataPattern extends BasePattern {
    * Cleanup pattern resources
    */
   override cleanup(_p: p5): void {
-    this.dataPoints = [];
-    this.dataStream = [];
+    this.binaryStreams = [];
+    this.numberElements = [];
+    this.freqBars = [];
   }
 }
