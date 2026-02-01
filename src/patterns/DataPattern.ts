@@ -106,26 +106,10 @@ export class DataPattern extends BasePattern {
   /**
    * Setup pattern resources
    */
-  override async setup(p: p5): Promise<void> {
-    // Load default font for WEBGL text rendering
-    await this.loadFont(p);
-
+  override setup(_p: p5): void {
     this.initializeBinaryStreams();
     this.initializeNumberElements();
     this.initializeFreqBars();
-  }
-
-  /**
-   * Load font for text rendering in WEBGL
-   */
-  private async loadFont(p: p5): Promise<void> {
-    return new Promise((resolve) => {
-      p.loadFont('https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/assets/inconsolata.ttf', (font: any) => {
-        p.textFont(font);
-        console.log('[DataPattern] Font loaded');
-        resolve();
-      });
-    });
   }
 
   /**
@@ -292,10 +276,6 @@ export class DataPattern extends BasePattern {
   private drawCoordinateStreams(p: p5): void {
     const streamCount = Math.floor(this.streamCount * this.params.coordinateFlow);
 
-    p.textFont('monospace');
-    p.textSize(10);
-    p.fill(255, 255, 255, 180);
-
     for (let s = 0; s < streamCount; s++) {
       const stream = this.binaryStreams[s];
       const baseX = (s / this.streamCount) * p.width;
@@ -303,32 +283,40 @@ export class DataPattern extends BasePattern {
       for (let i = 0; i < stream.length; i++) {
         const element = stream[i];
         const y = 20 + (i % 20) * 12;
-        const alpha = element.value === 1 ? 255 : 80;
+        const alpha = element.value === 1 ? 255 : 50;
+        const size = element.value === 1 ? 4 : 2;
 
+        p.noStroke();
         p.fill(255, 255, 255, alpha);
-        p.text(element.value.toString(), baseX + element.position * 8, y);
+        p.rectMode(p.CENTER);
+        p.rect(baseX + element.position * 8, y, size, size);
       }
     }
   }
 
   /**
-   * Draw numerical cascades
+   * Draw numerical cascades as binary bars
    */
   private drawNumericalCascades(p: p5): void {
     const count = Math.floor(this.numberElements.length * this.params.numericalDensity);
-
-    p.textFont('monospace');
-    p.textSize(9);
-    p.fill(200, 200, 200);
 
     for (let i = 0; i < count; i++) {
       const elem = this.numberElements[i];
       const x = elem.x * p.width;
       const y = p.height * 0.7 + elem.y * p.height * 0.25;
+      const value = Math.floor(elem.value);
 
-      // Format number with leading zeros
-      const str = Math.floor(elem.value).toString().padStart(elem.digits, '0');
-      p.text(str, x, y, elem.digits * 5 + 2);
+      // Draw as binary bits (8 bars per number)
+      const barWidth = 3;
+      const barGap = 1;
+
+      for (let bit = 0; bit < 8; bit++) {
+        const bitValue = (value >> bit) & 1;
+        const alpha = bitValue ? 200 : 50;
+        p.noStroke();
+        p.fill(200, 200, 200, alpha);
+        p.rect(x + bit * (barWidth + barGap), y, barWidth, 4);
+      }
     }
   }
 
@@ -352,34 +340,49 @@ export class DataPattern extends BasePattern {
   }
 
   /**
-   * Draw corner coordinate markers
+   * Draw corner coordinate markers as bars
    */
   private drawCornerMarkers(p: p5): void {
     const margin = 15;
-    p.fill(255, 255, 255, 150);
-    p.noStroke();
-    p.textFont('monospace');
-    p.textSize(9);
+    const barWidth = 2;
+    const barGap = 1;
+    const bits = 10; // Show 10 bits
 
-    // Top-left: X coordinate
-    const x = (p.frameCount * 0.5) % p.width;
-    p.text(`X:${x.toString().padStart(4, '0')}`, margin, margin);
+    // Generate 10-bit values from frameCount
+    const frameValue = p.frameCount % 1024;
+    const timeValue = Math.floor(p.frameCount / 60) % 1024;
+    const xValue = (p.frameCount * 0.5) % p.width;
+    const yValue = (p.frameCount * 0.3) % p.height;
 
-    // Top-right: Y coordinate
-    const y = (p.frameCount * 0.3) % p.height;
-    p.textAlign(p.RIGHT);
-    p.text(`Y:${y.toString().padStart(4, '0')}`, p.width - margin, margin);
-    p.textAlign(p.LEFT);
+    const drawBits = (value: number, x: number, y: number, color: number) => {
+      for (let i = 0; i < bits; i++) {
+        const bitValue = (value >> i) & 1;
+        const alpha = bitValue ? color : 30;
+        p.fill(255, 255, 255, alpha);
+        p.noStroke();
+        p.rect(x + i * (barWidth + barGap), y, barWidth, 6);
+      }
+    };
+
+    // Top-left: Frame
+    drawBits(frameValue, margin, margin, 200);
+
+    // Top-right: X coordinate
+    const xBits = Math.floor(xValue / 100) % 1024;
+    p.push();
+    p.translate(p.width - margin - bits * (barWidth + barGap), margin);
+    drawBits(xBits, 0, 0, 180);
+    p.pop();
 
     // Bottom-left: Time
-    const time = Math.floor(p.frameCount / 60);
-    const frames = p.frameCount % 60;
-    p.text(`T:${time.toString().padStart(3, '0')}:${frames.toString().padStart(2, '0')}`, margin, p.height - margin);
+    drawBits(timeValue, margin, p.height - margin - 8, 150);
 
-    // Bottom-right: Frame count
-    p.textAlign(p.RIGHT);
-    p.text(`F:${p.frameCount.toString().padStart(6, '0')}`, p.width - margin, p.height - margin);
-    p.textAlign(p.LEFT);
+    // Bottom-right: Y coordinate
+    const yBits = Math.floor(yValue / 10) % 1024;
+    p.push();
+    p.translate(p.width - margin - bits * (barWidth + barGap), p.height - margin - 8);
+    drawBits(yBits, 0, 0, 150);
+    p.pop();
   }
 
   /**
