@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Store } from './core';
 import { InputManager } from './core/InputManager';
-import { BlackHolePattern, GargantuaPattern } from './patterns';
+import { BlackHolePattern, GargantuaPattern, DataPattern } from './patterns';
 import { StartOverlay } from './components';
 import { P5Wrapper } from './components/P5Wrapper';
 import { LevaPanel } from './components/LevaPanel';
@@ -14,6 +14,7 @@ import type { MidiCCAssignment, MidiLearnState } from './types/midiAssignment';
 const PATTERNS = [
   new BlackHolePattern(),   // Key 1: Original black hole
   new GargantuaPattern(),   // Key 2: Interstellar-style black hole
+  new DataPattern(),        // Key 3: Minimal data visualization
 ];
 
 // Custom event for parameter updates (for ControlPanel sync)
