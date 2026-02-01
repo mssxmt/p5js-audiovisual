@@ -106,10 +106,26 @@ export class DataPattern extends BasePattern {
   /**
    * Setup pattern resources
    */
-  override setup(_p: p5): void {
+  override async setup(p: p5): Promise<void> {
+    // Load default font for WEBGL text rendering
+    await this.loadFont(p);
+
     this.initializeBinaryStreams();
     this.initializeNumberElements();
     this.initializeFreqBars();
+  }
+
+  /**
+   * Load font for text rendering in WEBGL
+   */
+  private async loadFont(p: p5): Promise<void> {
+    return new Promise((resolve) => {
+      p.loadFont('https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/assets/inconsolata.ttf', (font: any) => {
+        p.textFont(font);
+        console.log('[DataPattern] Font loaded');
+        resolve();
+      });
+    });
   }
 
   /**
