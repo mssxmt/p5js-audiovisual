@@ -1,14 +1,13 @@
 /**
- * DataPattern - Complex data visualization with flowing information streams
+ * DataPattern - Ryoji Ikeda style data visualization
  *
- * Features:
- * - Monochrome color scheme (black/white/gray)
- * - Flowing coordinate data streams
- * - Frequency spectrum visualization
- * - Numerical cascades
- * - Multiple data layers
- * - Fine-grained details
- * - Audio-reactive intensity
+ * Multi-layer composition:
+ * - Background: Pure black
+ * - Layer 1: Barcode stripes (bass reactive)
+ * - Layer 2: Binary matrix (mid reactive)
+ * - Layer 3: Waveform (treble reactive)
+ *
+ * Pure black/white aesthetic with geometric precision.
  */
 
 import type p5 from 'p5';
@@ -20,44 +19,44 @@ import type { MidiCCMapping } from '../types/midi';
  * Data pattern configuration parameters
  */
 interface DataParams {
-  dataSpeed: number;          // Data flow speed (0-2)
-  dataDensity: number;        // Amount of data elements (0-1)
-  spectrumIntensity: number;   // Frequency spectrum intensity (0-1)
-  coordinateFlow: number;      // Coordinate data flow (0-1)
-  numericalDensity: number;   // Number display density (0-1)
-  lineGranularity: number;    // Line detail level (0-1)
+  // Barcode (background layer)
+  barcodeSpeed: number;        // Scroll speed (0-10)
+  barcodeIntensity: number;    // Contrast (0-1)
+
+  // Binary matrix (middle layer)
+  binaryGridSize: number;      // Cell size (4-16)
+  binaryDensity: number;       // Density of 1s (0-1)
+  binarySpeed: number;         // Update speed (0-1)
+
+  // Frequency-specific reactions
+  bassReaction: number;        // Bass response (0-1)
+  midReaction: number;         // Mid response (0-1)
+
+  // Bass trigger for barcode scan
+  bassThreshold: number;       // Bass threshold to trigger scan (0-1)
+
+  // Background
   backgroundColor: { r: number; g: number; b: number };
   backgroundAlpha: number;
 }
 
 /**
- * Binary data stream element
+ * Barcode stripe data structure
  */
-interface BinaryElement {
-  value: number;
-  position: number;
-  speed: number;
+interface BarcodeStripe {
+  x: number;        // X position
+  width: number;    // Width
+  value: number;    // Brightness (0-1)
 }
 
 /**
- * Floating number data
+ * Binary cell data structure
  */
-interface NumberElement {
-  value: number;
-  target: number;
-  x: number;
-  y: number;
-  speed: number;
-  digits: number;
-}
-
-/**
- * Frequency bar data
- */
-interface FreqBar {
-  x: number;
-  height: number;
-  targetHeight: number;
+interface BinaryCell {
+  col: number;
+  row: number;
+  value: 0 | 1;
+  lastUpdate: number;
 }
 
 /**
@@ -65,38 +64,45 @@ interface FreqBar {
  */
 const PATTERN_CONFIG: PatternConfig = {
   name: 'DataPattern',
-  description: 'Complex data visualization with flowing information',
-  version: '1.0.0',
+  description: 'Ryoji Ikeda style data visualization - barcode and binary matrix layers',
+  version: '5.0.0',
 };
 
 /**
  * Default parameters
  */
 const DEFAULT_PARAMS: DataParams = {
-  dataSpeed: 0.5,
-  dataDensity: 0.5,
-  spectrumIntensity: 0.7,
-  coordinateFlow: 0.5,
-  numericalDensity: 0.4,
-  lineGranularity: 0.6,
+  barcodeSpeed: 0.3,
+  barcodeIntensity: 0.8,
+  binaryGridSize: 10,
+  binaryDensity: 0.5,
+  binarySpeed: 0.2,
+  bassReaction: 1.0,
+  midReaction: 1.0,
+  bassThreshold: 0.5,
   backgroundColor: { r: 0, g: 0, b: 0 },
-  backgroundAlpha: 0.9,
+  backgroundAlpha: 1,
 };
 
 /**
- * DataPattern - Complex flowing data visualization
+ * DataPattern - Ryoji Ikeda style multi-layer visualization
  */
 export class DataPattern extends BasePattern {
   protected params: DataParams;
 
-  // Data streams
-  private binaryStreams: BinaryElement[][] = [];
-  private numberElements: NumberElement[] = [];
-  private freqBars: FreqBar[] = [];
+  // Barcode layer data
+  private barcodes: BarcodeStripe[] = [];
+  private barcodeOffset = 0;
+  private bassTriggered = false;
+  private lastBassLevel = 0;
 
-  // Layout
-  private readonly spectrumBars = 64;
-  private readonly streamCount = 8;
+  // Binary matrix layer data
+  private binaryGrid: BinaryCell[] = [];
+  private gridCols = 0;
+  private gridRows = 0;
+
+  // Time tracking for animations
+  private lastUpdateTime = 0;
 
   constructor() {
     super(PATTERN_CONFIG);
@@ -106,60 +112,57 @@ export class DataPattern extends BasePattern {
   /**
    * Setup pattern resources
    */
-  override setup(_p: p5): void {
-    this.initializeBinaryStreams();
-    this.initializeNumberElements();
-    this.initializeFreqBars();
+  override setup(p: p5): void {
+    this.initBarcodes(p);
+    this.initBinaryGrid(p);
+    this.isSetup = true;
   }
 
   /**
-   * Initialize binary data streams
+   * Initialize barcode stripes to cover full screen width
    */
-  private initializeBinaryStreams(): void {
-    this.binaryStreams = [];
-    for (let i = 0; i < this.streamCount; i++) {
-      const stream: BinaryElement[] = [];
-      const elements = Math.floor(20 + Math.random() * 40);
-      for (let j = 0; j < elements; j++) {
-        stream.push({
-          value: Math.random() > 0.5 ? 1 : 0,
-          position: j,
-          speed: 0.2 + Math.random() * 0.5,
+  private initBarcodes(p: p5): void {
+    this.barcodes = [];
+
+    // Fixed stripe width range
+    const minWidth = 10;
+    const maxWidth = 30;
+
+    // Create stripes that cover the full width
+    let x = 0;
+    while (x < p.width) {
+      const width = p.random(minWidth, maxWidth);
+      // Initialize with dim value - brightness will be controlled by audio
+      this.barcodes.push({
+        x,
+        width,
+        value: 0.05,
+      });
+      x += width;
+    }
+
+    this.barcodeOffset = 0;
+  }
+
+  /**
+   * Initialize binary grid to cover full screen
+   */
+  private initBinaryGrid(p: p5): void {
+    this.binaryGrid = [];
+    const cellSize = Math.max(4, Math.min(16, this.params.binaryGridSize));
+
+    this.gridCols = Math.ceil(p.width / cellSize);
+    this.gridRows = Math.ceil(p.height / cellSize);
+
+    for (let col = 0; col < this.gridCols; col++) {
+      for (let row = 0; row < this.gridRows; row++) {
+        this.binaryGrid.push({
+          col,
+          row,
+          value: Math.random() < this.params.binaryDensity ? 1 : 0,
+          lastUpdate: 0,
         });
       }
-      this.binaryStreams.push(stream);
-    }
-  }
-
-  /**
-   * Initialize floating number elements
-   */
-  private initializeNumberElements(): void {
-    this.numberElements = [];
-    const count = 15;
-    for (let i = 0; i < count; i++) {
-      this.numberElements.push({
-        value: Math.random() * 1000,
-        target: Math.random() * 1000,
-        x: Math.random(),
-        y: Math.random(),
-        speed: 0.01 + Math.random() * 0.03,
-        digits: 4 + Math.floor(Math.random() * 4),
-      });
-    }
-  }
-
-  /**
-   * Initialize frequency bars
-   */
-  private initializeFreqBars(): void {
-    this.freqBars = [];
-    for (let i = 0; i < this.spectrumBars; i++) {
-      this.freqBars.push({
-        x: (i / this.spectrumBars),
-        height: 0,
-        targetHeight: 0,
-      });
     }
   }
 
@@ -167,46 +170,105 @@ export class DataPattern extends BasePattern {
    * Update pattern state
    */
   override update(p: p5, context: PatternContext): void {
-    const bassLevel = this.getAudioBand(context.audio, 'bass');
+    const currentTime = p.millis();
+    const deltaTime = currentTime - this.lastUpdateTime;
+    this.lastUpdateTime = currentTime;
 
-    // Update binary streams
-    const streamSpeed = this.params.dataSpeed * (1 + bassLevel * 0.5);
-    for (let s = 0; s < this.binaryStreams.length; s++) {
-      const stream = this.binaryStreams[s];
-      for (let i = 0; i < stream.length; i++) {
-        const element = stream[i];
-        element.position -= element.speed * streamSpeed;
+    // Get frequency band values
+    const bass = this.getAudioBand(context.audio, 'bass');
+    const mid = this.getAudioBand(context.audio, 'mid');
 
-        // Reset when off screen
-        if (element.position < -1) {
-          element.position = stream.length + Math.random() * 5;
-          element.value = Math.random() > 0.7 ? 1 : 0;
+    // Update barcode layer (scroll + bass reaction)
+    this.updateBarcodes(p, bass, deltaTime);
+
+    // Update binary layer (mid reaction)
+    this.updateBinaryGrid(p, mid, currentTime);
+  }
+
+  /**
+   * Update barcode layer with scrolling and bass reaction
+   */
+  private updateBarcodes(_p: p5, bass: number, deltaTime: number): void {
+    const bassLevel = bass * this.params.bassReaction;
+    const threshold = this.params.bassThreshold;
+
+    // Detect bass beat (rising edge crossing threshold)
+    const bassBeat = bassLevel >= threshold && this.lastBassLevel < threshold;
+
+    if (bassBeat) {
+      // Reset scan on new bass beat
+      this.barcodeOffset = 0;
+      this.bassTriggered = true;
+    }
+
+    this.lastBassLevel = bassLevel;
+
+    // Only scroll when bass has been triggered and level is above minimum
+    const minScrollLevel = 0.1;
+    if (this.bassTriggered && bassLevel > minScrollLevel) {
+      // Speed is now controlled by bass level, with higher maximum
+      const scrollSpeed = this.params.barcodeSpeed * bassLevel * 20;
+      this.barcodeOffset += scrollSpeed * (deltaTime / 16);
+    }
+
+    // Update stripe brightness based on bass
+    for (let i = 0; i < this.barcodes.length; i++) {
+      const stripe = this.barcodes[i];
+
+      // Base brightness - always visible even without audio
+      const baseBrightness = 0.15;
+      const maxBrightness = 1.0;
+
+      // Create variation across screen for more interesting visual
+      const positionVariation = (i / this.barcodes.length) * 0.15;
+
+      // Brightness is directly controlled by bass level
+      const bassBoost = bassLevel * (1.2 + positionVariation) * this.params.barcodeIntensity;
+      stripe.value = this.clamp(baseBrightness + bassBoost, 0, maxBrightness);
+    }
+  }
+
+  /**
+   * Update binary grid with mid-frequency reaction
+   */
+  private updateBinaryGrid(p: p5, mid: number, currentTime: number): void {
+    // Only update when mid frequency is above threshold
+    const midLevel = mid * this.params.midReaction;
+    const activationThreshold = 0.15;
+
+    if (midLevel < activationThreshold) {
+      // No audio = mostly static, rare random flicker
+      if (p.random() < 0.001) {
+        const randomCell = this.binaryGrid[Math.floor(p.random() * this.binaryGrid.length)];
+        if (randomCell) {
+          randomCell.value = randomCell.value === 1 ? 0 : 1;
+          randomCell.lastUpdate = currentTime;
         }
       }
+      return;
     }
 
-    // Update number elements
-    for (const elem of this.numberElements) {
-      // Move toward target
-      elem.value += (elem.target - elem.value) * 0.05;
-      elem.x += Math.sin(p.frameCount * 0.01 + elem.y * 10) * 0.002;
-      elem.y += 0.001;
+    // Mid frequency is active - update more cells
+    const updateCount = Math.floor(midLevel * this.binaryGrid.length * 0.1);
+    const densityTarget = this.params.binaryDensity;
 
-      if (elem.y > 1) elem.y -= 1;
+    for (let i = 0; i < updateCount; i++) {
+      const randomIndex = Math.floor(p.random() * this.binaryGrid.length);
+      const cell = this.binaryGrid[randomIndex];
 
-      // Change target randomly
-      if (Math.random() < 0.02 * this.params.dataDensity) {
-        elem.target = Math.random() * 9999;
-      }
+      // Set cell value based on density and mid level
+      const prob = densityTarget + midLevel * 0.3;
+      cell.value = p.random() < prob ? 1 : 0;
+      cell.lastUpdate = currentTime;
     }
 
-    // Update frequency bars based on audio
-    const spectrumData = context.audio.spectrum || new Uint8Array(128);
-    for (let i = 0; i < this.freqBars.length; i++) {
-      const spectrumIndex = Math.floor((i / this.freqBars.length) * spectrumData.length);
-      const spectrumValue = spectrumData[spectrumIndex] / 255;
-      this.freqBars[i].targetHeight = spectrumValue * this.params.spectrumIntensity;
-      this.freqBars[i].height += (this.freqBars[i].targetHeight - this.freqBars[i].height) * 0.3;
+    // Regenerate grid if cell size changed
+    const cellSize = this.params.binaryGridSize;
+    const expectedCols = Math.ceil(p.width / cellSize);
+    const expectedRows = Math.ceil(p.height / cellSize);
+
+    if (this.gridCols !== expectedCols || this.gridRows !== expectedRows) {
+      this.initBinaryGrid(p);
     }
   }
 
@@ -217,172 +279,75 @@ export class DataPattern extends BasePattern {
     this.drawBackground(p, options);
 
     p.push();
+    // Translate to make (0,0) top-left for easier drawing
+    p.translate(-p.width / 2, -p.height / 2);
 
-    // Draw frequency spectrum at bottom
-    this.drawFrequencySpectrum(p);
-
-    // Draw coordinate data streams
-    this.drawCoordinateStreams(p);
-
-    // Draw numerical cascades
-    this.drawNumericalCascades(p);
-
-    // Draw fine horizontal lines
-    this.drawFineLines(p);
-
-    // Draw corner markers
-    this.drawCornerMarkers(p);
+    this.drawBarcodeLayer(p);
+    this.drawBinaryLayer(p);
 
     p.pop();
   }
 
   /**
-   * Draw background
+   * Draw background - pure black
    */
-  protected drawBackground(p: p5, options: PatternRenderOptions): void {
-    if (options.clearBackground) {
-      p.clear();
-    } else if (options.trails) {
-      p.background(0, options.trailAlpha * 255);
-    } else {
-      p.background(0);
+  protected drawBackground(p: p5, _options: PatternRenderOptions): void {
+    p.clear();
+    const { r, g, b } = this.params.backgroundColor;
+    const alpha = Math.floor(this.params.backgroundAlpha * 255);
+    p.background(r, g, b, alpha);
+  }
+
+  /**
+   * Draw barcode layer (background layer)
+   */
+  private drawBarcodeLayer(p: p5): void {
+    p.noStroke();
+
+    for (const stripe of this.barcodes) {
+      // Calculate x position with scroll offset
+      const x = (stripe.x + this.barcodeOffset) % p.width;
+      const wrappedX = x < 0 ? x + p.width : x;
+
+      // Brightness based on stripe value
+      const gray = Math.floor(stripe.value * 255);
+
+      p.fill(gray);
+      p.rect(wrappedX, 0, stripe.width, p.height);
+
+      // Draw wrap-around stripe if needed
+      if (wrappedX + stripe.width > p.width) {
+        p.rect(0, 0, (wrappedX + stripe.width) - p.width, p.height);
+      }
     }
   }
 
   /**
-   * Draw frequency spectrum
+   * Draw binary matrix layer (middle layer)
    */
-  private drawFrequencySpectrum(p: p5): void {
-    const barWidth = p.width / this.spectrumBars;
-    const maxHeight = p.height * 0.3;
+  private drawBinaryLayer(p: p5): void {
+    const cellSize = this.params.binaryGridSize;
 
     p.noStroke();
-    for (let i = 0; i < this.freqBars.length; i++) {
-      const bar = this.freqBars[i];
-      const barHeight = bar.height * maxHeight;
-      const x = bar.x * p.width;
-      const y = p.height - barHeight;
 
-      // Gradient from white to gray
-      const brightness = 200 + bar.height * 55;
-      p.fill(brightness, barHeight * 100, barHeight * 100);
-      p.rect(x, y, barWidth - 1, barHeight);
-    }
-  }
+    for (const cell of this.binaryGrid) {
+      if (cell.value === 1) {
+        const x = cell.col * cellSize;
+        const y = cell.row * cellSize;
 
-  /**
-   * Draw coordinate data streams
-   */
-  private drawCoordinateStreams(p: p5): void {
-    const streamCount = Math.floor(this.streamCount * this.params.coordinateFlow);
-
-    for (let s = 0; s < streamCount; s++) {
-      const stream = this.binaryStreams[s];
-      const baseX = (s / this.streamCount) * p.width;
-
-      for (let i = 0; i < stream.length; i++) {
-        const element = stream[i];
-        const y = 20 + (i % 20) * 12;
-        const alpha = element.value === 1 ? 255 : 50;
-        const size = element.value === 1 ? 4 : 2;
-
-        p.noStroke();
-        p.fill(255, 255, 255, alpha);
-        p.rectMode(p.CENTER);
-        p.rect(baseX + element.position * 8, y, size, size);
+        // Pure white for active cells
+        p.fill(255);
+        p.rect(x, y, cellSize - 1, cellSize - 1);
       }
     }
   }
 
   /**
-   * Draw numerical cascades as binary bars
+   * Handle canvas resize
    */
-  private drawNumericalCascades(p: p5): void {
-    const count = Math.floor(this.numberElements.length * this.params.numericalDensity);
-
-    for (let i = 0; i < count; i++) {
-      const elem = this.numberElements[i];
-      const x = elem.x * p.width;
-      const y = p.height * 0.7 + elem.y * p.height * 0.25;
-      const value = Math.floor(elem.value);
-
-      // Draw as binary bits (8 bars per number)
-      const barWidth = 3;
-      const barGap = 1;
-
-      for (let bit = 0; bit < 8; bit++) {
-        const bitValue = (value >> bit) & 1;
-        const alpha = bitValue ? 200 : 50;
-        p.noStroke();
-        p.fill(200, 200, 200, alpha);
-        p.rect(x + bit * (barWidth + barGap), y, barWidth, 4);
-      }
-    }
-  }
-
-  /**
-   * Draw fine horizontal lines
-   */
-  private drawFineLines(p: p5): void {
-    const lineCount = Math.floor(30 * this.params.lineGranularity);
-    const spacing = p.height / lineCount;
-
-    p.stroke(255, 255, 255, 30);
-    p.strokeWeight(1);
-
-    for (let i = 0; i < lineCount; i++) {
-      const y = i * spacing;
-      // Random gaps in lines
-      if (Math.random() > 0.1) {
-        p.line(0, y, p.width, y);
-      }
-    }
-  }
-
-  /**
-   * Draw corner coordinate markers as bars
-   */
-  private drawCornerMarkers(p: p5): void {
-    const margin = 15;
-    const barWidth = 2;
-    const barGap = 1;
-    const bits = 10; // Show 10 bits
-
-    // Generate 10-bit values from frameCount
-    const frameValue = p.frameCount % 1024;
-    const timeValue = Math.floor(p.frameCount / 60) % 1024;
-    const xValue = (p.frameCount * 0.5) % p.width;
-    const yValue = (p.frameCount * 0.3) % p.height;
-
-    const drawBits = (value: number, x: number, y: number, color: number) => {
-      for (let i = 0; i < bits; i++) {
-        const bitValue = (value >> i) & 1;
-        const alpha = bitValue ? color : 30;
-        p.fill(255, 255, 255, alpha);
-        p.noStroke();
-        p.rect(x + i * (barWidth + barGap), y, barWidth, 6);
-      }
-    };
-
-    // Top-left: Frame
-    drawBits(frameValue, margin, margin, 200);
-
-    // Top-right: X coordinate
-    const xBits = Math.floor(xValue / 100) % 1024;
-    p.push();
-    p.translate(p.width - margin - bits * (barWidth + barGap), margin);
-    drawBits(xBits, 0, 0, 180);
-    p.pop();
-
-    // Bottom-left: Time
-    drawBits(timeValue, margin, p.height - margin - 8, 150);
-
-    // Bottom-right: Y coordinate
-    const yBits = Math.floor(yValue / 10) % 1024;
-    p.push();
-    p.translate(p.width - margin - bits * (barWidth + barGap), p.height - margin - 8);
-    drawBits(yBits, 0, 0, 150);
-    p.pop();
+  override resize(p: p5): void {
+    this.initBarcodes(p);
+    this.initBinaryGrid(p);
   }
 
   /**
@@ -404,12 +369,14 @@ export class DataPattern extends BasePattern {
    */
   getParamMeta(): Record<string, { min: number; max: number; step: number }> {
     return {
-      dataSpeed: { min: 0, max: 2, step: 0.01 },
-      dataDensity: { min: 0, max: 1, step: 0.01 },
-      spectrumIntensity: { min: 0, max: 1, step: 0.01 },
-      coordinateFlow: { min: 0, max: 1, step: 0.01 },
-      numericalDensity: { min: 0, max: 1, step: 0.01 },
-      lineGranularity: { min: 0, max: 1, step: 0.01 },
+      barcodeSpeed: { min: 0, max: 10, step: 0.1 },
+      barcodeIntensity: { min: 0, max: 1, step: 0.01 },
+      binaryGridSize: { min: 4, max: 16, step: 1 },
+      binaryDensity: { min: 0, max: 1, step: 0.01 },
+      binarySpeed: { min: 0, max: 1, step: 0.01 },
+      bassReaction: { min: 0, max: 1, step: 0.01 },
+      midReaction: { min: 0, max: 1, step: 0.01 },
+      bassThreshold: { min: 0, max: 1, step: 0.01 },
       backgroundAlpha: { min: 0, max: 1, step: 0.01 },
     };
   }
@@ -422,26 +389,42 @@ export class DataPattern extends BasePattern {
       {
         channel: 0,
         ccNumber: 1,
-        parameterPath: 'dataSpeed',
+        parameterPath: 'barcodeSpeed',
         min: 0,
-        max: 2,
-        currentValue: this.params.dataSpeed,
+        max: 10,
+        currentValue: this.params.barcodeSpeed,
       },
       {
         channel: 0,
         ccNumber: 2,
-        parameterPath: 'dataDensity',
-        min: 0,
-        max: 1,
-        currentValue: this.params.dataDensity,
+        parameterPath: 'binaryGridSize',
+        min: 4,
+        max: 16,
+        currentValue: this.params.binaryGridSize,
       },
       {
         channel: 0,
         ccNumber: 3,
-        parameterPath: 'spectrumIntensity',
+        parameterPath: 'bassReaction',
         min: 0,
         max: 1,
-        currentValue: this.params.spectrumIntensity,
+        currentValue: this.params.bassReaction,
+      },
+      {
+        channel: 0,
+        ccNumber: 4,
+        parameterPath: 'midReaction',
+        min: 0,
+        max: 1,
+        currentValue: this.params.midReaction,
+      },
+      {
+        channel: 0,
+        ccNumber: 5,
+        parameterPath: 'bassThreshold',
+        min: 0,
+        max: 1,
+        currentValue: this.params.bassThreshold,
       },
     ];
   }
@@ -450,8 +433,13 @@ export class DataPattern extends BasePattern {
    * Cleanup pattern resources
    */
   override cleanup(_p: p5): void {
-    this.binaryStreams = [];
-    this.numberElements = [];
-    this.freqBars = [];
+    this.barcodes = [];
+    this.binaryGrid = [];
+    this.gridCols = 0;
+    this.gridRows = 0;
+    this.barcodeOffset = 0;
+    this.bassTriggered = false;
+    this.lastBassLevel = 0;
+    this.isSetup = false;
   }
 }

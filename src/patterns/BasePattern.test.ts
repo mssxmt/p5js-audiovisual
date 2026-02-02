@@ -179,6 +179,7 @@ describe('BasePattern', () => {
           raw: new Uint8Array([0]),
           normalized: [0],
           spectrum: [0],
+          waveform: [0],
           bands: {
             subBass: 0,
             bass: 0,
@@ -394,6 +395,7 @@ describe('BasePattern', () => {
         raw: new Uint8Array([0]),
         normalized: [0],
         spectrum: [0],
+        waveform: [0],
         bands: {
           subBass: 0.1,
           bass: 0.2,
@@ -683,6 +685,7 @@ describe('BasePattern', () => {
           raw: new Uint8Array([128]),
           normalized: [0.5],
           spectrum: [0.5],
+          waveform: [0],
           bands: {
             subBass: 0.2,
             bass: 0.4,
@@ -751,6 +754,7 @@ describe('BasePattern', () => {
         raw: new Uint8Array([0]),
         normalized: [0],
         spectrum: [0],
+        waveform: [0],
         bands: {
           subBass: 0.2,
           bass: 0.4,

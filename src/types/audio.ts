@@ -21,6 +21,7 @@ export interface AudioData {
   bands: FrequencyBand;
   level: number;           // Overall volume level (0-1)
   spectrum: number[];      // Full FFT spectrum normalized
+  waveform: number[];      // Time-domain waveform data (-1 to 1)
 }
 
 export interface AudioDeviceInfo {

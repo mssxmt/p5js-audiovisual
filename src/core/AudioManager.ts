@@ -209,6 +209,11 @@ export class AudioManager {
     const dataArray = new Uint8Array(bufferLength);
     this.analyser.getByteFrequencyData(dataArray);
 
+    // Get time-domain data (waveform)
+    const timeDataArray = new Uint8Array(bufferLength);
+    this.analyser.getByteTimeDomainData(timeDataArray);
+    const waveform = Array.from(timeDataArray).map((v) => (v - 128) / 128);
+
     // Calculate normalized values
     const normalized = Array.from(dataArray).map((v) => v / 255);
 
@@ -222,6 +227,7 @@ export class AudioManager {
       raw: dataArray,
       normalized,
       spectrum: normalized,
+      waveform,
       bands,
       level,
     };
@@ -279,6 +285,7 @@ export class AudioManager {
       raw: new Uint8Array(0),
       normalized: [],
       spectrum: [],
+      waveform: [],
       bands: {
         subBass: 0,
         bass: 0,

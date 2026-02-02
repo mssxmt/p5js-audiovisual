@@ -15,6 +15,7 @@ class MockAudioManager extends AudioManager {
     raw: new Uint8Array([100, 150, 200]),
     normalized: [0.4, 0.6, 0.8],
     spectrum: [0.4, 0.6, 0.8],
+    waveform: [0.1, -0.2, 0.3],
     bands: {
       subBass: 0.5,
       bass: 0.6,

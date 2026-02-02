@@ -192,6 +192,7 @@ const createMockContext = (
       raw: new Uint8Array([128]),
       normalized: [volumeLevel],
       spectrum: [bassLevel, midLevel, highLevel],
+      waveform: [0],
       bands: {
         subBass: bassLevel * 0.8,
         bass: bassLevel,
@@ -620,6 +621,7 @@ describe('BlackHolePattern', () => {
           raw: new Uint8Array(0),
           normalized: [],
           spectrum: [],
+          waveform: [],
           bands: {
             subBass: 0,
             bass: 0,
