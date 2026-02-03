@@ -278,9 +278,10 @@ export class FlowFieldPattern extends BasePattern {
    * Create a single particle
    */
   private createParticle(p: p5): FlowParticle {
+    // In WEBGL mode, origin is at center, so we use -width/2 to width/2
     const pos = p.createVector(
-      p.random(p.width),
-      p.random(p.height)
+      p.random(-p.width / 2, p.width / 2),
+      p.random(-p.height / 2, p.height / 2)
     );
     const prevPos = pos.copy();
     const vel = p.createVector(0, 0);
@@ -357,8 +358,11 @@ export class FlowFieldPattern extends BasePattern {
       particle.hueOffset = colorShift;
 
       // Get flow field vector at current position
-      const x = Math.floor(particle.pos.x / this.resolution);
-      const y = Math.floor(particle.pos.y / this.resolution);
+      // Offset by half width/height for WEBGL coordinate system
+      const offsetX = particle.pos.x + p.width / 2;
+      const offsetY = particle.pos.y + p.height / 2;
+      const x = Math.floor(offsetX / this.resolution);
+      const y = Math.floor(offsetY / this.resolution);
 
       // Constrain to grid bounds
       const col = Math.max(0, Math.min(x, this.cols - 1));
@@ -378,11 +382,13 @@ export class FlowFieldPattern extends BasePattern {
       const movement = particle.vel.copy().mult(particle.speed * speedMult * 0.1);
       particle.pos.add(movement);
 
-      // Wrap around edges
-      if (particle.pos.x < 0) particle.pos.x = p.width;
-      if (particle.pos.x > p.width) particle.pos.x = 0;
-      if (particle.pos.y < 0) particle.pos.y = p.height;
-      if (particle.pos.y > p.height) particle.pos.y = 0;
+      // Wrap around edges (WEBGL mode: origin is at center)
+      const halfWidth = p.width / 2;
+      const halfHeight = p.height / 2;
+      if (particle.pos.x < -halfWidth) particle.pos.x = halfWidth;
+      if (particle.pos.x > halfWidth) particle.pos.x = -halfWidth;
+      if (particle.pos.y < -halfHeight) particle.pos.y = halfHeight;
+      if (particle.pos.y > halfHeight) particle.pos.y = -halfHeight;
 
       // Wrap prevPos if wrapped
       if (particle.pos.x !== particle.prevPos.x && Math.abs(particle.pos.x - particle.prevPos.x) > p.width / 2) {
