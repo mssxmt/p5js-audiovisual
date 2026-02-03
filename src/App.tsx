@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Store } from './core';
 import { InputManager } from './core/InputManager';
-import { BlackHolePattern, GargantuaPattern, DataPattern, ThreeDPattern } from './patterns';
+import { BlackHolePattern, GargantuaPattern, DataPattern, ThreeDPattern, FlowFieldPattern } from './patterns';
 import { StartOverlay } from './components';
 import { P5Wrapper } from './components/P5Wrapper';
 import { LevaPanel } from './components/LevaPanel';
@@ -16,6 +16,7 @@ const PATTERNS = [
   new GargantuaPattern(),   // Key 2: Interstellar-style black hole
   new DataPattern(),        // Key 3: Minimal data visualization
   new ThreeDPattern(),      // Key 4: 3D interactive visualizer
+  new FlowFieldPattern(),   // Key 5: Flow field visualization
 ];
 
 // Custom event for parameter updates (for ControlPanel sync)
