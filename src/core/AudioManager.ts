@@ -223,6 +223,10 @@ export class AudioManager {
     // Calculate overall level
     const level = normalized.reduce((sum, val) => sum + val, 0) / normalized.length;
 
+    // Calculate peak frequency (full range)
+    const nyquistFreq = (this.audioContext?.sampleRate ?? 48000) / 2;
+    const peakFrequency = this.getPeakFrequencyInRange(0, nyquistFreq);
+
     this.currentData = {
       raw: dataArray,
       normalized,
@@ -230,6 +234,7 @@ export class AudioManager {
       waveform,
       bands,
       level,
+      peakFrequency,
     };
 
     this.events.onDataUpdate?.(this.currentData);
@@ -296,6 +301,7 @@ export class AudioManager {
         brilliance: 0,
       },
       level: 0,
+      peakFrequency: 0,
     };
   }
 
@@ -351,6 +357,59 @@ export class AudioManager {
       treble: calculateAverage(...this.frequencyRanges.treble),
       brilliance: calculateAverage(...this.frequencyRanges.brilliance),
     };
+  }
+
+  /**
+   * Get peak frequency in Hz within a specific frequency range
+   * @param minFreq - Minimum frequency in Hz
+   * @param maxFreq - Maximum frequency in Hz
+   * @returns Peak frequency in Hz, or 0 if no audio detected
+   */
+  getPeakFrequencyInRange(minFreq: number, maxFreq: number): number {
+    if (!this.analyser || !this.audioContext) {
+      return 0;
+    }
+
+    const binCount = this.analyser.frequencyBinCount;
+    const binSize = this.audioContext.sampleRate / 2 / binCount;
+
+    // Convert frequency range to bin indices
+    const startBin = Math.floor(minFreq / binSize);
+    const endBin = Math.min(Math.ceil(maxFreq / binSize), binCount);
+
+    if (startBin >= endBin || startBin >= binCount) {
+      return 0;
+    }
+
+    // Get current frequency data
+    const dataArray = new Uint8Array(binCount);
+    this.analyser.getByteFrequencyData(dataArray);
+
+    return this.findPeakFrequency(dataArray, startBin, endBin, binSize);
+  }
+
+  /**
+   * Find peak frequency in data array within bin range
+   */
+  private findPeakFrequency(data: Uint8Array, startBin: number, endBin: number, binSize: number): number {
+    let maxValue = 0;
+    let peakBin = startBin;
+
+    // Find bin with maximum value in range
+    for (let i = startBin; i < endBin; i++) {
+      if (data[i] > maxValue) {
+        maxValue = data[i];
+        peakBin = i;
+      }
+    }
+
+    // Ignore values below threshold (noise floor)
+    if (maxValue < 10) {
+      return 0;
+    }
+
+    // Convert bin index to frequency
+    return peakBin * binSize;
   }
 
   private updateLoopId: number | null = null;

@@ -190,6 +190,7 @@ describe('BasePattern', () => {
             brilliance: 0,
           },
           level: 0,
+          peakFrequency: 0,
         },
         midi: {
           cc: new Map(),
@@ -197,6 +198,9 @@ describe('BasePattern', () => {
           clock: 0,
         },
         deltaTime: 16,
+        audioManager: {
+          getPeakFrequencyInRange: vi.fn(() => 0),
+        },
       };
 
       expect(() => pattern.update(mockP5, mockContext)).not.toThrow();
@@ -406,6 +410,7 @@ describe('BasePattern', () => {
           brilliance: 0.7,
         },
         level: 0.5,
+        peakFrequency: 440,
       };
     });
 
@@ -696,6 +701,7 @@ describe('BasePattern', () => {
             brilliance: 0.1,
           },
           level: 0.5,
+          peakFrequency: 440,
         },
         midi: {
           cc: new Map([['0:1', 0.75]]),
@@ -703,6 +709,9 @@ describe('BasePattern', () => {
           clock: 50,
         },
         deltaTime: 16,
+        audioManager: {
+          getPeakFrequencyInRange: vi.fn(() => 440),
+        },
       };
 
       const mockOptions: PatternRenderOptions = {
@@ -765,6 +774,7 @@ describe('BasePattern', () => {
           brilliance: 0.1,
         },
         level: 0.5,
+        peakFrequency: 440,
       };
       expect(pattern.testGetAudioBand(mockAudio, 'bass')).toBe(0.4);
 

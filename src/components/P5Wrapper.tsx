@@ -108,6 +108,7 @@ export const P5Wrapper: React.FC<P5WrapperProps> = ({ store, patterns, currentPa
           audio: audioData as any,
           midi: midiData as any,
           deltaTime: p.deltaTime,
+          audioManager: store.audio,
         };
 
         // Update pattern

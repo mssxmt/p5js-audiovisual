@@ -38,6 +38,9 @@ interface NumberDisplay {
   value: number;
   digitCount: number;         // Number of digits (1-5)
   brightness: number;
+  minFreq: number;            // Minimum frequency in Hz for this display
+  maxFreq: number;            // Maximum frequency in Hz for this display
+  lastValue: number;          // Last displayed value for smoothing
 }
 
 /**
@@ -190,13 +193,21 @@ export class ThreeDPattern extends BasePattern {
     const depth = this.params.numberDepth;
     const size = this.params.numberSize;
     const digits = Math.max(1, Math.min(5, this.params.numberDigits));
-    const maxValue = Math.pow(10, digits) - 1;
+
+    // Divide frequency range (20Hz - 20kHz) among all numbers
+    const minFreq = 20;
+    const maxFreq = 20000;
+    const freqRangePerNumber = (maxFreq - minFreq) / count;
 
     for (let i = 0; i < count; i++) {
       const x = p.random(-p.width / 2 + size, p.width / 2 - size);
       const y = p.random(-p.height / 2 + size, p.height / 2 - size);
       const z = p.random(-depth, depth);
-      const value = Math.floor(p.random(0, maxValue + 1));
+      const value = 0; // Will be updated by audio data
+
+      // Assign unique frequency range to each number
+      const numMinFreq = minFreq + i * freqRangePerNumber;
+      const numMaxFreq = numMinFreq + freqRangePerNumber;
 
       this.numbers.push({
         x,
@@ -205,6 +216,9 @@ export class ThreeDPattern extends BasePattern {
         value,
         digitCount: digits,
         brightness: p.random(0.2, 0.8),
+        minFreq: numMinFreq,
+        maxFreq: numMaxFreq,
+        lastValue: value,
       });
     }
   }
@@ -232,8 +246,8 @@ export class ThreeDPattern extends BasePattern {
     // Update particles with bass reaction
     this.updateParticles(p, bass, deltaTime, currentTime);
 
-    // Update numbers with mid/treble reaction
-    this.updateNumbers(p, mid, treble, currentTime);
+    // Update numbers with peak frequency data
+    this.updateNumbers(p, context, mid, treble, currentTime);
 
     // Auto-rotation
     this.params.rotationY += this.params.rotationSpeed;
@@ -262,28 +276,63 @@ export class ThreeDPattern extends BasePattern {
   }
 
   /**
-   * Update number displays with mid/treble reactivity
+   * Update number displays with peak frequency data
    */
-  private updateNumbers(p: p5, mid: number, treble: number, _currentTime: number): void {
+  private updateNumbers(p: p5, context: PatternContext, mid: number, treble: number, _currentTime: number): void {
     const midLevel = mid * this.params.midReaction;
     const trebleLevel = treble * this.params.trebleReaction;
-    const updateThreshold = 0.3;
+    const maxValue = Math.pow(10, this.params.numberDigits) - 1;
 
-    // Update brightness based on mid/treble
     for (let i = 0; i < this.numbers.length; i++) {
       const num = this.numbers[i];
 
-      // Brightness reacts to mid frequencies
-      const baseBrightness = 0.2;
-      const midBoost = midLevel * 0.6;
-      const trebleBoost = trebleLevel * 0.2;
-      num.brightness = this.clamp(baseBrightness + midBoost + trebleBoost, 0, 1);
+      // Get peak frequency in this number's assigned range
+      const peakFreq = context.audioManager.getPeakFrequencyInRange(num.minFreq, num.maxFreq);
 
-      // Change value when treble is strong
-      if (trebleLevel > updateThreshold && p.random() < trebleLevel * 0.05) {
-        const maxValue = Math.pow(10, num.digitCount) - 1;
-        num.value = Math.floor(p.random(0, maxValue + 1));
+      // Update value with peak frequency (rounded to nearest integer)
+      // Add some randomness for visual variety while keeping base value tied to audio
+      let newValue: number;
+      if (peakFreq > 0) {
+        // Map frequency to a value that fits in the digit count
+        // For 3 digits: 0-999 Hz maps to 0-999, higher frequencies wrap around
+        const freqValue = Math.floor(peakFreq) % (maxValue + 1);
+
+        // Add small random variation for "garagara" effect
+        const jitter = Math.floor(p.random(-10, 11));
+        newValue = this.clamp(freqValue + jitter, 0, maxValue);
+      } else {
+        // No audio in this range - create "idle animation" effect
+        // Use index-based offset to create rolling/cascading effect
+        const timeOffset = _currentTime * 0.05;
+        const indexOffset = i * 13; // Prime number for non-repeating pattern
+        const baseValue = (timeOffset + indexOffset) % (maxValue + 1);
+
+        // Add randomness for "garagara" feel
+        const jitter = Math.floor(p.random(-20, 21));
+        newValue = this.clamp(Math.floor(baseValue) + jitter, 0, maxValue);
       }
+
+      // Smooth transition from previous value
+      const diff = newValue - num.lastValue;
+      const maxChange = maxValue * 0.15; // Max 15% change per frame
+      if (Math.abs(diff) > maxChange) {
+        num.value = num.lastValue + Math.sign(diff) * maxChange;
+      } else {
+        num.value = newValue;
+      }
+      num.lastValue = num.value;
+
+      // Brightness reacts to mid/treble frequencies
+      const baseBrightness = 0.15;
+      const midBoost = midLevel * 0.5;
+      const trebleBoost = trebleLevel * 0.3;
+
+      // Numbers with higher peak frequencies get brighter
+      const freqBoost = peakFreq > 0 ? Math.min(peakFreq / 10000, 0.3) : 0;
+
+      // Idle animation brightness pulse
+      const idlePulse = peakFreq <= 0 ? Math.sin(_currentTime * 0.003 + i * 0.5) * 0.1 + 0.1 : 0;
+      num.brightness = this.clamp(baseBrightness + midBoost + trebleBoost + freqBoost + idlePulse, 0, 1);
     }
   }
 

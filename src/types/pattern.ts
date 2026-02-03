@@ -2,6 +2,11 @@ import type p5 from 'p5';
 import type { AudioData } from './audio';
 import type { MidiData } from './midi';
 
+// Forward declaration to avoid circular dependency
+export interface AudioManagerLike {
+  getPeakFrequencyInRange(minFreq: number, maxFreq: number): number;
+}
+
 export interface PatternConfig {
   name: string;
   description: string;
@@ -12,6 +17,7 @@ export interface PatternContext {
   audio: AudioData;
   midi: MidiData;
   deltaTime: number;
+  audioManager: AudioManagerLike;
 }
 
 export interface PatternRenderOptions {

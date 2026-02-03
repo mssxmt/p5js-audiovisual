@@ -203,6 +203,7 @@ const createMockContext = (
         brilliance: highLevel * 0.5,
       },
       level: volumeLevel,
+      peakFrequency: bassLevel > 0 ? 80 : 0,
     },
     midi: {
       cc: new Map(),
@@ -210,6 +211,9 @@ const createMockContext = (
       clock: 0,
     },
     deltaTime: 16,
+    audioManager: {
+      getPeakFrequencyInRange: vi.fn(() => bassLevel > 0 ? 80 : 0),
+    },
   };
 };
 
@@ -632,6 +636,7 @@ describe('BlackHolePattern', () => {
             brilliance: 0,
           },
           level: 0,
+          peakFrequency: 0,
         },
         midi: {
           cc: new Map(),
@@ -639,6 +644,9 @@ describe('BlackHolePattern', () => {
           clock: 0,
         },
         deltaTime: 16,
+        audioManager: {
+          getPeakFrequencyInRange: vi.fn(() => 0),
+        },
       };
 
       expect(() => pattern.update(mockP5, emptyContext)).not.toThrow();

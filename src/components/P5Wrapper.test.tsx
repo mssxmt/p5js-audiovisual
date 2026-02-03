@@ -179,6 +179,7 @@ describe('P5Wrapper', () => {
       level: 0,
       spectrum: [],
       waveform: [],
+      peakFrequency: 0,
     });
 
     render(<P5Wrapper store={mockStore} patterns={mockPatterns} />);

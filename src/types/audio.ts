@@ -22,6 +22,7 @@ export interface AudioData {
   level: number;           // Overall volume level (0-1)
   spectrum: number[];      // Full FFT spectrum normalized
   waveform: number[];      // Time-domain waveform data (-1 to 1)
+  peakFrequency: number;   // Peak frequency in Hz (most dominant frequency)
 }
 
 export interface AudioDeviceInfo {

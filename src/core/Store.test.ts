@@ -26,6 +26,7 @@ class MockAudioManager extends AudioManager {
       brilliance: 0.3,
     },
     level: 0.7,
+    peakFrequency: 440,
   };
 
   public mockInitializeResult = true;
