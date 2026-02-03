@@ -264,9 +264,9 @@ export class BlackHolePattern extends BasePattern {
     // Bass causes particles to be sucked into black hole more aggressively
     const audioGravity = midiGravity * (0.3 + bassLevel * 4);
 
-    // Apply audio reactivity to noise (all bands increase chaos)
-    // Audio makes particles more chaotic and unpredictable
-    const audioNoise = midiNoise * (0.5 + volumeLevel * 5);
+    // Apply audio reactivity to noise (mid frequencies increase chaos)
+    // Mid-range audio makes particles more chaotic and unpredictable
+    const audioNoise = midiNoise * (0.5 + midLevel * 5);
 
     // Apply audio reactivity to particle speed (treble increases speed)
     const speedMultiplier = 0.5 + trebleLevel * 5;
