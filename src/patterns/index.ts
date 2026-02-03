@@ -3,4 +3,5 @@ export { BlackHolePattern } from './BlackHolePattern';
 export { GargantuaPattern } from './GargantuaPattern';
 export { DataPattern } from './DataPattern';
 export { ThreeDPattern } from './ThreeDPattern';
+export { FlowFieldPattern } from './FlowFieldPattern';
 export type { IBasePattern, PatternContext, PatternRenderOptions } from '../types/pattern';
