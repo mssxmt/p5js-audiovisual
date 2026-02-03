@@ -9,9 +9,9 @@ import type {
 
 const DEFAULT_CONFIG: AudioConfig = {
   fftSize: 2048,
-  smoothingTimeConstant: 0.5,
-  minDecibels: -90,
-  maxDecibels: -10,
+  smoothingTimeConstant: 0.3,
+  minDecibels: -100,
+  maxDecibels: -30,
 };
 
 /**

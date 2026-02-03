@@ -262,14 +262,14 @@ export class BlackHolePattern extends BasePattern {
 
     // Apply audio reactivity to gravity (bass strongly increases gravity)
     // Bass causes particles to be sucked into black hole more aggressively
-    const audioGravity = midiGravity * (0.3 + bassLevel * 8);
+    const audioGravity = midiGravity * (0.1 + bassLevel * 20);
 
     // Apply audio reactivity to noise (mid frequencies increase chaos)
     // Mid-range audio makes particles more chaotic and unpredictable
-    const audioNoise = midiNoise * (0.5 + midLevel * 10);
+    const audioNoise = midiNoise * (0.2 + midLevel * 25);
 
     // Apply audio reactivity to particle speed (treble increases speed)
-    const speedMultiplier = 0.5 + trebleLevel * 8;
+    const speedMultiplier = 0.3 + trebleLevel * 15;
 
     // Apply audio reactivity to particle count (volume increases count)
     const targetParticleCount = midiParticleCount >= 0
