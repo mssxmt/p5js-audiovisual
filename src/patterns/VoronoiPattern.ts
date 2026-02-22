@@ -1,12 +1,12 @@
 /**
- * VoronoiPattern - Dynamic Voronoi Diagram Visualization
+ * VoronoiPattern - Dynamic Voronoi Diagram Visualization (WebGL Shader)
  *
- * Real-time Voronoi diagram with moving seed points:
+ * Real-time Voronoi diagram with moving seed points using GPU shaders:
  * - Seed points move organically through the space
  * - Cell boundaries change dynamically as seeds move
  * - Optional Delaunay triangulation overlay
  * - Audio-reactive colors and movement
- * - Sharp geometric aesthetic with modern feel
+ * - High performance using WebGL fragment shaders
  */
 
 import p5 from 'p5';
@@ -22,7 +22,7 @@ interface SeedPoint {
   y: number;
   vx: number;
   vy: number;
-  phase: number;      // For organic movement (Lissajous)
+  phase: number;
   speed: number;
   radiusX: number;
   radiusY: number;
@@ -39,7 +39,7 @@ interface VoronoiParams {
   movementType: number;     // 0=Brownian, 1=Lissajous, 2=Perlin
 
   // Visual
-  boundaryWidth: number;    // Boundary line width (1-5)
+  boundaryWidth: number;    // Boundary line width (0.01-0.1 in shader)
   baseHue: number;          // Base color hue (0-360)
   hueVariation: number;     // Hue variation between cells (0-180)
   saturation: number;       // Color saturation (0-100)
@@ -65,7 +65,7 @@ interface VoronoiParams {
 const PATTERN_CONFIG: PatternConfig = {
   name: 'VoronoiPattern',
   description: 'Dynamic Voronoi diagram visualization',
-  version: '1.0.0',
+  version: '1.0.1',
 };
 
 /**
@@ -74,8 +74,8 @@ const PATTERN_CONFIG: PatternConfig = {
 const DEFAULT_PARAMS: VoronoiParams = {
   seedCount: 30,
   movementSpeed: 0.5,
-  movementType: 1,  // Lissajous
-  boundaryWidth: 2,
+  movementType: 1,
+  boundaryWidth: 0.02,
   baseHue: 200,
   hueVariation: 60,
   saturation: 70,
@@ -89,8 +89,112 @@ const DEFAULT_PARAMS: VoronoiParams = {
   backgroundAlpha: 0.05,
 };
 
+// Vertex shader (simple pass-through)
+const VERTEX_SHADER = `
+attribute vec3 aPosition;
+attribute vec2 aTexCoord;
+
+varying vec2 vTexCoord;
+
+void main() {
+  vTexCoord = aTexCoord;
+  gl_Position = vec4(aPosition, 1.0);
+}
+`;
+
+// Fragment shader for Voronoi diagram
+const FRAGMENT_SHADER = `
+precision mediump float;
+
+varying vec2 vTexCoord;
+
+// Uniforms
+uniform vec2 uResolution;
+uniform vec2 uSeeds[100];
+uniform vec3 uSeedColors[100];
+uniform int uSeedCount;
+uniform float uBoundaryWidth;
+uniform bool uShowBoundaries;
+uniform bool uFillCells;
+
+// HSB to RGB conversion
+vec3 hsb2rgb(vec3 c) {
+  vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+  rgb = rgb * rgb;
+  return c.z * mix(vec3(1.0), rgb, c.y);
+}
+
+void main() {
+  // Normalize coordinates to 0-1
+  vec2 uv = vTexCoord;
+
+  // Find nearest seed
+  float minDist = 1000.0;
+  int nearestSeed = 0;
+
+  for (int i = 0; i < 100; i++) {
+    if (i >= uSeedCount) break;
+    vec2 seed = uSeeds[i] / uResolution;
+    float dist = distance(uv, seed);
+    if (dist < minDist) {
+      minDist = dist;
+      nearestSeed = i;
+    }
+  }
+
+  // Get color for this cell
+  vec3 color = uSeedColors[nearestSeed];
+
+  // Check for boundary (compare with neighbors)
+  float boundary = 0.0;
+  if (uShowBoundaries) {
+    vec2 offset = vec2(1.0) / uResolution;
+    int nearestRight = nearestSeed;
+    int nearestDown = nearestSeed;
+
+    // Check right neighbor
+    float minDistRight = 1000.0;
+    for (int i = 0; i < 100; i++) {
+      if (i >= uSeedCount) break;
+      vec2 seed = uSeeds[i] / uResolution;
+      float dist = distance(uv + vec2(offset.x, 0.0), seed);
+      if (dist < minDistRight) {
+        minDistRight = dist;
+        nearestRight = i;
+      }
+    }
+
+    // Check bottom neighbor
+    float minDistDown = 1000.0;
+    for (int i = 0; i < 100; i++) {
+      if (i >= uSeedCount) break;
+      vec2 seed = uSeeds[i] / uResolution;
+      float dist = distance(uv + vec2(0.0, offset.y), seed);
+      if (dist < minDistDown) {
+        minDistDown = dist;
+        nearestDown = i;
+      }
+    }
+
+    // Mark boundary if neighbor has different nearest seed
+    if (nearestRight != nearestSeed || nearestDown != nearestSeed) {
+      boundary = 1.0;
+    }
+  }
+
+  // Apply boundary
+  if (uShowBoundaries && boundary > 0.5) {
+    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+  } else if (uFillCells) {
+    gl_FragColor = vec4(color, 1.0);
+  } else {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+  }
+}
+`;
+
 /**
- * VoronoiPattern - Dynamic Voronoi diagram visualization
+ * VoronoiPattern - Dynamic Voronoi diagram using WebGL shaders
  */
 export class VoronoiPattern extends BasePattern {
   protected params: VoronoiParams;
@@ -98,8 +202,11 @@ export class VoronoiPattern extends BasePattern {
   // Seed points
   private seeds: SeedPoint[] = [];
 
-  // Offscreen graphics for Voronoi rendering (performance)
-  private voronoiBuffer: p5.Graphics | null = null;
+  // WebGL shader
+  private voronoiShader: p5.Shader | null = null;
+
+  // Graphics buffer for shader rendering
+  private pg: p5.Graphics | null = null;
 
   // Time for animation
   private time = 0;
@@ -134,7 +241,7 @@ export class VoronoiPattern extends BasePattern {
       seedCount: { min: 10, max: 100, step: 1 },
       movementSpeed: { min: 0, max: 2, step: 0.1 },
       movementType: { min: 0, max: 2, step: 1 },
-      boundaryWidth: { min: 1, max: 5, step: 0.5 },
+      boundaryWidth: { min: 0.01, max: 0.1, step: 0.01 },
       baseHue: { min: 0, max: 360, step: 1 },
       hueVariation: { min: 0, max: 180, step: 5 },
       saturation: { min: 0, max: 100, step: 1 },
@@ -154,8 +261,12 @@ export class VoronoiPattern extends BasePattern {
   }
 
   override setup(p: p5): void {
-    // Create offscreen buffer for Voronoi rendering (lower resolution for performance)
-    this.voronoiBuffer = p.createGraphics(p.width, p.height, p.WEBGL);
+    // Create offscreen graphics buffer with WEBGL
+    this.pg = p.createGraphics(p.width, p.height, p.WEBGL);
+
+    // Create shader (load from strings)
+    this.voronoiShader = this.pg.createShader(VERTEX_SHADER, FRAGMENT_SHADER);
+
     this.initializeSeeds(p);
     this.isSetup = true;
   }
@@ -226,7 +337,7 @@ export class VoronoiPattern extends BasePattern {
         // Brownian motion
         seed.vx += p.random(-0.1, 0.1);
         seed.vy += p.random(-0.1, 0.1);
-        seed.vx *= 0.99; // Damping
+        seed.vx *= 0.99;
         seed.vy *= 0.99;
         seed.x += seed.vx * this.params.movementSpeed * speedMult;
         seed.y += seed.vy * this.params.movementSpeed * speedMult;
@@ -272,8 +383,10 @@ export class VoronoiPattern extends BasePattern {
     // Draw background
     this.drawBackground(p, options);
 
-    // Render Voronoi diagram
-    this.drawVoronoi(p);
+    if (!this.pg || !this.voronoiShader) return;
+
+    // Render Voronoi using shader
+    this.drawVoronoiShader(p);
   }
 
   /**
@@ -288,112 +401,53 @@ export class VoronoiPattern extends BasePattern {
   }
 
   /**
-   * Draw Voronoi diagram using pixel-by-pixel approach
-   * Full resolution for smooth appearance
+   * Draw Voronoi diagram using WebGL shader
    */
-  private drawVoronoi(p: p5): void {
-    // Full resolution for smooth appearance
-    const scaleFactor = 1;
+  private drawVoronoiShader(p: p5): void {
+    if (!this.pg || !this.voronoiShader) return;
 
-    p.loadPixels();
+    // Prepare seed positions and colors for shader
+    const seedPositions: number[] = [];
+    const seedColors: number[] = [];
 
-    // Direct pixel manipulation for Voronoi
-    for (let y = 0; y < p.height; y += scaleFactor) {
-      for (let x = 0; x < p.width; x += scaleFactor) {
-        let minDist = Infinity;
-        let nearestSeed = this.seeds[0];
+    for (const seed of this.seeds) {
+      seedPositions.push(seed.x, seed.y);
 
-        // Find nearest seed
-        for (const seed of this.seeds) {
-          const dx = x - seed.x;
-          const dy = y - seed.y;
-          const dist = dx * dx + dy * dy;
-
-          if (dist < minDist) {
-            minDist = dist;
-            nearestSeed = seed;
-          }
-        }
-
-        // Determine color based on nearest seed
-        const hue = (nearestSeed.hue + this.hueShift) % 360;
-
-        // Set pixel color (HSB to RGB conversion simplified)
-        const rgb = this.hsbToRgb(hue / 360, this.params.saturation / 100, this.params.brightness / 100);
-
-        // Fill the scaled pixel block
-        for (let py = 0; py < scaleFactor && y + py < p.height; py++) {
-          for (let px = 0; px < scaleFactor && x + px < p.width; px++) {
-            const idx = ((y + py) * p.width + (x + px)) * 4;
-            p.pixels[idx] = rgb[0];
-            p.pixels[idx + 1] = rgb[1];
-            p.pixels[idx + 2] = rgb[2];
-            p.pixels[idx + 3] = 255;
-          }
-        }
-      }
+      // Convert HSB to RGB
+      const hue = (seed.hue + this.hueShift) / 360;
+      const sat = this.params.saturation / 100;
+      const bri = this.params.brightness / 100;
+      const rgb = this.hsbToRgb(hue, sat, bri);
+      seedColors.push(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255);
     }
 
-    p.updatePixels();
-
-    // Draw boundaries (optional)
-    if (this.params.showBoundaries) {
-      this.drawBoundaries(p);
+    // Pad to 100 seeds (shader max)
+    while (seedPositions.length < 200) {
+      seedPositions.push(0, 0);
+      seedColors.push(0, 0, 0);
     }
 
-    // Draw Delaunay triangulation (optional)
+    // Set shader uniforms
+    this.voronoiShader.setUniform('uResolution', [p.width, p.height]);
+    this.voronoiShader.setUniform('uSeeds', seedPositions);
+    this.voronoiShader.setUniform('uSeedColors', seedColors);
+    this.voronoiShader.setUniform('uSeedCount', this.seeds.length);
+    this.voronoiShader.setUniform('uBoundaryWidth', this.params.boundaryWidth);
+    this.voronoiShader.setUniform('uShowBoundaries', this.params.showBoundaries);
+    this.voronoiShader.setUniform('uFillCells', this.params.fillCells);
+
+    // Render to graphics buffer
+    this.pg.shader(this.voronoiShader);
+    this.pg.noStroke();
+    this.pg.rectMode(p.CORNER);
+    this.pg.rect(0, 0, this.pg.width, this.pg.height);
+
+    // Draw graphics buffer to main canvas
+    p.image(this.pg, 0, 0);
+
+    // Draw Delaunay triangulation (optional) - CPU side
     if (this.params.showDelaunay) {
       this.drawDelaunay(p);
-    }
-  }
-
-  /**
-   * Draw Voronoi cell boundaries
-   */
-  private drawBoundaries(p: p5): void {
-    const scaleFactor = 1;
-
-    p.stroke(255);
-    p.strokeWeight(this.params.boundaryWidth);
-    p.noFill();
-
-    // Detect boundaries by checking neighbors
-    for (let y = 0; y < p.height - scaleFactor; y += scaleFactor) {
-      for (let x = 0; x < p.width - scaleFactor; x += scaleFactor) {
-        // Get nearest seed for current pixel
-        let minDist1 = Infinity;
-        let nearest1 = 0;
-
-        for (let i = 0; i < this.seeds.length; i++) {
-          const seed = this.seeds[i];
-          const dx = x - seed.x;
-          const dy = y - seed.y;
-          const dist = dx * dx + dy * dy;
-          if (dist < minDist1) {
-            minDist1 = dist;
-            nearest1 = i;
-          }
-        }
-
-        // Check right neighbor
-        let minDist2 = Infinity;
-        let nearest2 = 0;
-
-        for (let i = 0; i < this.seeds.length; i++) {
-          const seed = this.seeds[i];
-          const dx = (x + scaleFactor) - seed.x;
-          const dy = y - seed.y;
-          const dist = dx * dx + dy * dy;
-          if (dist < minDist2) {
-            minDist2 = dist;
-            nearest2 = i;
-          }
-        }
-
-        if (nearest1 !== nearest2) {
-          p.point(x + scaleFactor / 2, y + scaleFactor / 2);
-        }
-      }
     }
   }
 
@@ -404,14 +458,12 @@ export class VoronoiPattern extends BasePattern {
     p.stroke(255, 100);
     p.strokeWeight(1);
 
-    // Simple approach: connect seeds that are close to each other
     for (let i = 0; i < this.seeds.length; i++) {
       for (let j = i + 1; j < this.seeds.length; j++) {
         const dx = this.seeds[i].x - this.seeds[j].x;
         const dy = this.seeds[i].y - this.seeds[j].y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Connect if within threshold distance
         const threshold = 150;
         if (dist < threshold) {
           const alpha = (1 - dist / threshold) * 100;
@@ -452,18 +504,19 @@ export class VoronoiPattern extends BasePattern {
 
   override cleanup(_p: p5): void {
     this.seeds = [];
-    if (this.voronoiBuffer) {
-      this.voronoiBuffer.remove();
-      this.voronoiBuffer = null;
+    if (this.pg) {
+      this.pg.remove();
+      this.pg = null;
     }
+    this.voronoiShader = null;
     this.isSetup = false;
   }
 
   override resize(p: p5): void {
-    if (this.voronoiBuffer) {
-      this.voronoiBuffer.remove();
+    if (this.pg) {
+      this.pg.remove();
     }
-    this.voronoiBuffer = p.createGraphics(p.width, p.height, p.WEBGL);
+    this.pg = p.createGraphics(p.width, p.height, p.WEBGL);
     this.initializeSeeds(p);
   }
 }
