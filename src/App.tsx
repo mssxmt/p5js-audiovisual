@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Store } from './core';
 import { InputManager } from './core/InputManager';
-import { BlackHolePattern, GargantuaPattern, DataPattern, ThreeDPattern, FlowFieldPattern, BloodVesselPattern, WireframeTerrainPattern, Ikeda3DPattern } from './patterns';
+import { BlackHolePattern, GargantuaPattern, DataPattern, ThreeDPattern, FlowFieldPattern, BloodVesselPattern, WireframeTerrainPattern, Barcode3DPattern } from './patterns';
 import { StartOverlay } from './components';
 import { P5Wrapper } from './components/P5Wrapper';
 import { LevaPanel } from './components/LevaPanel';
@@ -19,7 +19,7 @@ const PATTERNS = [
   new FlowFieldPattern(),       // Key 5: Flow field visualization
   new BloodVesselPattern(),     // Key 6: Blood vessel visualization
   new WireframeTerrainPattern(), // Key 7: Wireframe terrain
-  new Ikeda3DPattern(),         // Key 8: Ryoji Ikeda-style 3D data visualization
+  new Barcode3DPattern(),         // Key 8: 3D barcode data visualization
 ];
 
 // Custom event for parameter updates (for ControlPanel sync)

@@ -6,5 +6,5 @@ export { ThreeDPattern } from './ThreeDPattern';
 export { FlowFieldPattern } from './FlowFieldPattern';
 export { BloodVesselPattern } from './BloodVesselPattern';
 export { WireframeTerrainPattern } from './WireframeTerrainPattern';
-export { Ikeda3DPattern } from './Ikeda3DPattern';
+export { Barcode3DPattern } from './Barcode3DPattern';
 export type { IBasePattern, PatternContext, PatternRenderOptions } from '../types/pattern';
