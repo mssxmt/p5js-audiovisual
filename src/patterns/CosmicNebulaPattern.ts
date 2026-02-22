@@ -100,7 +100,7 @@ const DEFAULT_PARAMS: CosmicNebulaParams = {
   trebleColorShift: 60,
   camSpeed: 0.002,
   camZoom: 1.0,
-  backgroundAlpha: 0.4,
+  backgroundAlpha: 0.08,
 };
 
 /**
@@ -386,12 +386,11 @@ export class CosmicNebulaPattern extends BasePattern {
     const hueShift = this._colorShift;
 
     for (const star of this._stars) {
-      const twinkle = (Math.sin(star.twinklePhase) + 1) / 2;
-      const brightness = star.brightness * (0.5 + twinkle * 0.5);
       const hue = (star.hue + hueShift) % 360;
 
       p.noStroke();
-      p.fill(hue, 30, brightness * 255, 0.8);
+      // Brighter stars: higher saturation, full brightness, full opacity
+      p.fill(hue, 70, 100, 1.0);
 
       // Additive blending for glow effect
       p.blendMode(p.ADD);
@@ -486,12 +485,13 @@ export class CosmicNebulaPattern extends BasePattern {
       return;
     }
 
-    // First frame: always clear completely to pure black
+    // First frame: clear completely
     if (this._frameCount === 0) {
       p.background(0);
     } else {
-      // Subsequent frames: solid black background (no trails)
-      p.background(0);
+      // Trail effect using backgroundAlpha
+      // Lower alpha = longer trails
+      p.background(0, this.params.backgroundAlpha * 255);
     }
 
     this._frameCount++;
