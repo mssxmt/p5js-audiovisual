@@ -478,21 +478,11 @@ export class CosmicNebulaPattern extends BasePattern {
    * Draw background with trail effect
    */
   protected override drawBackground(p: p5, options: PatternRenderOptions): void {
-    p.push();
-    p.colorMode(p.HSB, 360, 100, 100, 255);
-
     if (options.clearBackground) {
       p.clear();
     } else {
-      // Dark space background with trail effect
-      p.background(
-        this.params.bgHue,
-        this.params.bgSaturation,
-        this.params.bgBrightness,
-        this.params.backgroundAlpha * 255
-      );
+      // Pure black background with trail effect
+      p.background(0, this.params.backgroundAlpha * 255);
     }
-
-    p.pop();
   }
 }
