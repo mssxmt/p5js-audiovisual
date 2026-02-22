@@ -127,6 +127,9 @@ export class CosmicNebulaPattern extends BasePattern {
   // Reinitialization flag
   private _needsReinit = false;
 
+  // Frame counter for initial clear
+  private _frameCount = 0;
+
   constructor() {
     super(PATTERN_CONFIG);
     this.params = { ...DEFAULT_PARAMS };
@@ -480,9 +483,17 @@ export class CosmicNebulaPattern extends BasePattern {
   protected override drawBackground(p: p5, options: PatternRenderOptions): void {
     if (options.clearBackground) {
       p.clear();
-    } else {
-      // Pure black background with trail effect
-      p.background(0, this.params.backgroundAlpha * 255);
+      return;
     }
+
+    // First frame: always clear completely to pure black
+    if (this._frameCount === 0) {
+      p.background(0);
+    } else {
+      // Subsequent frames: solid black background (no trails)
+      p.background(0);
+    }
+
+    this._frameCount++;
   }
 }
