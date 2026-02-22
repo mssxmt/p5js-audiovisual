@@ -112,19 +112,36 @@
 - **パラメータ**: gridSize, wireThickness, wireDensity, baseHue, rotationSpeed, etc.
 - **ファイル**: `src/patterns/WireframeTerrainPattern.ts`
 
-### 8. CircuitBoardPattern (Key 8)
-- **概要**: 電子基板風回路ビジュアライゼーション
+### 8. Ikeda3DPattern (Key 8)
+- **概要**: Ryoji Ikedaスタイル3Dデータビジュアライゼーション
 - **特徴**:
-  - グリッド配置されたノード（CPU, RAM, IO, POWER）
-  - マンハッタンルーティングの直角配線
-  - 配線が成長していくアニメーション
-  - データフローアニメーション
+  - 3Dバーコードレイヤー（空間に浮遊するストライプ）
+  - 浮遊する数値データ（周波数値を表示）
+  - XYZ軸波形表示
+  - 純粋な白黒美学に赤アクセント
+  - カメラオービット＆手動角度制御
+  - 赤スキャンライン効果（Treble反応）
 - **オーディオ反応**:
-  - Bass → 新しい配線出現
-  - Mid → データフロー加速
-  - Treble → ノードの明滅
-- **パラメータ**: nodeCount, gridSpacing, growthSpeed, dataFlowSpeed, baseHue, etc.
-- **ファイル**: `src/patterns/CircuitBoardPattern.ts`
+  - Bass → レイヤー間隔拡大
+  - Mid → 数値ジッター/ノイズ
+  - Treble → 赤スキャンライン発光
+- **パラメータ**: layerCount, layerSpacing, barDensity, scrollSpeed, dataCount, waveformScale, redThreshold, camRadius, camSpeed, camAngleX/Y, scanlineEnabled, etc.
+- **ファイル**: `src/patterns/Ikeda3DPattern.ts`
+
+### 9. CosmicNebulaPattern (Key 9)
+- **概要**: 宇宙星雲ビジュアライゼーション
+- **特徴**:
+  - 多層星フィールド（スモール70%、ミディアム25%、ラージ5%）
+  - 流れるガス星雲（スパイラルパターン）
+  - 加法ブレンディングで神秘的な光の効果
+  - カメラ自動回転
+  - HSBカラーモード
+- **オーディオ反応**:
+  - Bass → 星のスポーン率
+  - Mid → ガスの流速増加
+  - Treble → 色シフト（星雲の色が変化）
+- **パラメータ**: starCount, starSize, twinkleSpeed, gasCount, gasSize, gasFlowSpeed, nebulaHue, bgHue, bassStarSpawn, midGasFlow, trebleColorShift, camSpeed, camZoom, etc.
+- **ファイル**: `src/patterns/CosmicNebulaPattern.ts`
 
 ---
 
@@ -310,10 +327,12 @@ src/
 │   ├── ThreeDPattern.ts       # Key 4
 │   ├── FlowFieldPattern.ts    # Key 5
 │   ├── BloodVesselPattern.ts  # Key 6
-│   └── WireframeTerrainPattern.ts # Key 7
+│   ├── WireframeTerrainPattern.ts # Key 7
+│   ├── Ikeda3DPattern.ts      # Key 8
+│   └── CosmicNebulaPattern.ts # Key 9
 └── types/                  # 型定義
 ```
 
 ---
 
-*最終更新: 2026-02-04*
+*最終更新: 2026-02-22*
