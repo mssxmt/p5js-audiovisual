@@ -112,6 +112,20 @@
 - **パラメータ**: gridSize, wireThickness, wireDensity, baseHue, rotationSpeed, etc.
 - **ファイル**: `src/patterns/WireframeTerrainPattern.ts`
 
+### 8. CircuitBoardPattern (Key 8)
+- **概要**: 電子基板風回路ビジュアライゼーション
+- **特徴**:
+  - グリッド配置されたノード（CPU, RAM, IO, POWER）
+  - マンハッタンルーティングの直角配線
+  - 配線が成長していくアニメーション
+  - データフローアニメーション
+- **オーディオ反応**:
+  - Bass → 新しい配線出現
+  - Mid → データフロー加速
+  - Treble → ノードの明滅
+- **パラメータ**: nodeCount, gridSpacing, growthSpeed, dataFlowSpeed, baseHue, etc.
+- **ファイル**: `src/patterns/CircuitBoardPattern.ts`
+
 ---
 
 ## コアアーキテクチャ
