@@ -5,4 +5,5 @@ export { DataPattern } from './DataPattern';
 export { ThreeDPattern } from './ThreeDPattern';
 export { FlowFieldPattern } from './FlowFieldPattern';
 export { BloodVesselPattern } from './BloodVesselPattern';
+export { WireframeTerrainPattern } from './WireframeTerrainPattern';
 export type { IBasePattern, PatternContext, PatternRenderOptions } from '../types/pattern';
