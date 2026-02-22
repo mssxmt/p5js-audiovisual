@@ -128,21 +128,6 @@
 - **パラメータ**: layerCount, layerSpacing, barDensity, scrollSpeed, dataCount, waveformScale, redThreshold, camRadius, camSpeed, camAngleX/Y, scanlineEnabled, etc.
 - **ファイル**: `src/patterns/Ikeda3DPattern.ts`
 
-### 9. CosmicNebulaPattern (Key 9)
-- **概要**: 宇宙星雲ビジュアライゼーション
-- **特徴**:
-  - 多層星フィールド（スモール70%、ミディアム25%、ラージ5%）
-  - 流れるガス星雲（スパイラルパターン）
-  - 加法ブレンディングで神秘的な光の効果
-  - カメラ自動回転
-  - HSBカラーモード
-- **オーディオ反応**:
-  - Bass → 星のスポーン率
-  - Mid → ガスの流速増加
-  - Treble → 色シフト（星雲の色が変化）
-- **パラメータ**: starCount, starSize, twinkleSpeed, gasCount, gasSize, gasFlowSpeed, nebulaHue, bgHue, bassStarSpawn, midGasFlow, trebleColorShift, camSpeed, camZoom, etc.
-- **ファイル**: `src/patterns/CosmicNebulaPattern.ts`
-
 ---
 
 ## コアアーキテクチャ
@@ -328,8 +313,7 @@ src/
 │   ├── FlowFieldPattern.ts    # Key 5
 │   ├── BloodVesselPattern.ts  # Key 6
 │   ├── WireframeTerrainPattern.ts # Key 7
-│   ├── Ikeda3DPattern.ts      # Key 8
-│   └── CosmicNebulaPattern.ts # Key 9
+│   └── Ikeda3DPattern.ts      # Key 8
 └── types/                  # 型定義
 ```
 

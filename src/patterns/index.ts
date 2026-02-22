@@ -7,5 +7,4 @@ export { FlowFieldPattern } from './FlowFieldPattern';
 export { BloodVesselPattern } from './BloodVesselPattern';
 export { WireframeTerrainPattern } from './WireframeTerrainPattern';
 export { Ikeda3DPattern } from './Ikeda3DPattern';
-export { CosmicNebulaPattern } from './CosmicNebulaPattern';
 export type { IBasePattern, PatternContext, PatternRenderOptions } from '../types/pattern';
