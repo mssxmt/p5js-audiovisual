@@ -121,7 +121,7 @@ export class CircuitBoardPattern extends BasePattern {
   private needsReinit = false;
 
   // Node type colors (hue offsets) - used in Task 5 (draw method)
-  // @ts-ignore: Used in Task 5
+  // @ts-ignore: Used in Task 5 (draw method)
   private readonly NODE_TYPE_COLORS: Record<NodeType, number> = {
     CPU: 0,    // Base hue
     RAM: 30,   // +30°
@@ -156,26 +156,58 @@ export class CircuitBoardPattern extends BasePattern {
 
   /**
    * Update pattern state with audio reactivity
-   * Implemented in Task 4
    */
-  override update(p: p5, _context: PatternContext): void {
-    // Check if reinitialization is needed
+  override update(p: p5, context: PatternContext): void {
+    // Reinitialize if needed
     if (this.needsReinit) {
       this.initializeGrid(p);
       this.initializeNodes(p);
       this.needsReinit = false;
     }
 
-    // Placeholder - Task 4 will implement audio-reactive updates
-    this.time += 0.01;
+    // Get audio bands
+    const bassLevel = this.getAudioBand(context.audio, 'bass');
+    const midLevel = this.getAudioBand(context.audio, 'mid');
+    const trebleLevel = this.getAudioBand(context.audio, 'treble');
+
+    // Update time
+    this.time += 0.016; // ~60fps
+
+    // Calculate audio-reactive parameters
+    const spawnChance = bassLevel * this.params.bassSpawnRate * 0.1;
+    const flowMult = 1 + midLevel * this.params.midFlowMult;
+    const pulseMult = 1 + trebleLevel * this.params.treblePulseMult;
+
+    // Spawn new traces on bass
+    if (spawnChance > 0.01) {
+      this.spawnNewTraces(p, spawnChance);
+    }
+
+    // Update traces
+    this.updateTraces(p, flowMult);
+
+    // Update nodes
+    this.updateNodes(p, pulseMult);
   }
 
   /**
    * Draw pattern
-   * Implemented in Task 5
    */
-  override draw(_p: p5, _options: PatternRenderOptions): void {
-    // Placeholder - Task 5 will implement rendering
+  override draw(p: p5, options: PatternRenderOptions): void {
+    this.drawBackground(p, options);
+    // Placeholder - full implementation in Task 5
+  }
+
+  /**
+   * Draw background with trail fade
+   */
+  protected override drawBackground(p: p5, options: PatternRenderOptions): void {
+    if (options.clearBackground) {
+      p.clear();
+    } else {
+      // Dark PCB background (dark green/black)
+      p.background(5, 15, 10, this.params.backgroundAlpha * 255);
+    }
   }
 
   getParamMeta(): Record<string, { min: number; max: number; step: number }> {
@@ -370,9 +402,7 @@ export class CircuitBoardPattern extends BasePattern {
 
   /**
    * Spawn new traces on beat/audio peaks
-   * Used in Task 4 (update method)
    */
-  // @ts-ignore: Used in Task 4 (update method)
   private spawnNewTraces(p: p5, spawnChance: number): void {
     if (this.traces.length >= this.params.maxTraces) return;
 
@@ -405,6 +435,61 @@ export class CircuitBoardPattern extends BasePattern {
         this.createTrace(fromNode, toNode);
         fromNode.connections.push(toNode.id);
         toNode.connections.push(fromNode.id);
+      }
+    }
+  }
+
+  /**
+   * Update trace growth and data flow
+   */
+  private updateTraces(_p: p5, flowMult: number): void {
+    const growthSpeed = this.params.growthSpeed;
+    const dataFlowBase = this.params.dataFlowSpeed;
+
+    for (const trace of this.traces) {
+      // Grow trace
+      if (trace.progress < 1) {
+        trace.progress += growthSpeed;
+        if (trace.progress > 1) trace.progress = 1;
+      }
+
+      // Update data flow
+      trace.dataFlow += dataFlowBase * flowMult * 0.05;
+      if (trace.dataFlow > 1) trace.dataFlow = 0;
+    }
+
+    // Remove old traces if over limit
+    if (this.traces.length > this.params.maxTraces) {
+      // Remove oldest completed traces
+      const completed = this.traces.filter(t => t.progress >= 1);
+      if (completed.length > 0) {
+        const toRemove = this.traces.indexOf(completed[0]);
+        if (toRemove !== -1) {
+          const removed = this.traces.splice(toRemove, 1)[0];
+
+          // Remove from node connections
+          const fromNode = this.nodes.find(n => n.id === removed.fromNode);
+          const toNode = this.nodes.find(n => n.id === removed.toNode);
+          if (fromNode) {
+            fromNode.connections = fromNode.connections.filter(id => id !== removed.toNode);
+          }
+          if (toNode) {
+            toNode.connections = toNode.connections.filter(id => id !== removed.fromNode);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Update node pulse animation
+   */
+  private updateNodes(_p: p5, pulseMult: number): void {
+    for (const node of this.nodes) {
+      // Pulse phase increases with time
+      node.pulsePhase += 0.05 * pulseMult;
+      if (node.pulsePhase > _p.TWO_PI) {
+        node.pulsePhase -= _p.TWO_PI;
       }
     }
   }
