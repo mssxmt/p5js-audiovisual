@@ -177,15 +177,28 @@ export class WireframeTerrainPattern extends BasePattern {
 
   /**
    * Update pattern state
-   * Will be implemented in Task 3
+   * Audio-reactive terrain updates with frequency band influences
    */
-  override update(p: p5, _context: PatternContext): void {
+  override update(p: p5, context: PatternContext): void {
     // Reinitialize if parameters changed
     if (this.needsReinit) {
       this.initializeTerrain(p);
       this.needsReinit = false;
     }
-    // Placeholder - will implement audio reactive updates in Task 3
+
+    // Get audio frequency bands
+    const bassLevel = this.getAudioBand(context.audio, 'bass');
+    const midLevel = this.getAudioBand(context.audio, 'mid');
+    const trebleLevel = this.getAudioBand(context.audio, 'treble');
+
+    // Update time for Perlin noise animation
+    this.time += 0.01;
+
+    // Update camera rotation
+    this.params.rotationY += this.params.rotationSpeed;
+
+    // Update terrain with audio reactivity
+    this.updateTerrain(p, bassLevel, midLevel, trebleLevel);
   }
 
   /**
@@ -247,12 +260,50 @@ export class WireframeTerrainPattern extends BasePattern {
    * @param z - Z position in terrain space
    * @param chaosMult - Chaos multiplier for audio reactivity
    * @returns Target Y height based on Perlin noise
-   *
-   * Note: Used in Task 3 for audio-reactive terrain updates
    */
-  // @ts-expect-error - Method will be used in Task 3
   private calculateTargetHeight(p: p5, x: number, z: number, chaosMult: number): number {
     const scale = this.params.terrainScale * chaosMult;
     return p.noise(x * scale, z * scale, this.time) * this.params.maxHeight;
+  }
+
+  /**
+   * Update terrain with audio-reactive height modifications
+   * @param p - p5 instance
+   * @param bassLevel - Bass frequency level (0-1)
+   * @param midLevel - Mid frequency level (0-1)
+   * @param _trebleLevel - Treble frequency level (0-1) - reserved for color shifts
+   *
+   * Audio reactivity:
+   * - Bass increases terrain height amplitude
+   * - Mid increases noise chaos (terrain detail)
+   * - Treble reserved for color shifts (handled in draw)
+   */
+  private updateTerrain(
+    p: p5,
+    bassLevel: number,
+    midLevel: number,
+    _trebleLevel: number
+  ): void {
+    // Calculate audio-reactive multipliers
+    const chaosMult = 1 + midLevel * this.params.midChaosMult;
+    const heightMult = 1 + bassLevel * this.params.bassHeightMult;
+    const buildSpeed = this.params.buildSpeed;
+
+    // Update all terrain points
+    for (let i = 0; i < this.terrain.length; i++) {
+      const row = this.terrain[i];
+      for (let j = 0; j < row.length; j++) {
+        const point = row[j];
+
+        // Calculate target height based on Perlin noise
+        const targetHeight = this.calculateTargetHeight(p, point.x, point.z, chaosMult);
+
+        // Apply audio height multiplier
+        point.targetY = targetHeight * heightMult;
+
+        // Smoothly interpolate current height to target (lerp)
+        point.y = p.lerp(point.y, point.targetY, buildSpeed);
+      }
+    }
   }
 }
