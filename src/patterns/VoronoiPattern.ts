@@ -92,12 +92,14 @@ const DEFAULT_PARAMS: VoronoiParams = {
 // Vertex shader (simple pass-through)
 const VERTEX_SHADER = `
 attribute vec3 aPosition;
-attribute vec2 aTexCoord;
 
 varying vec2 vTexCoord;
 
 void main() {
-  vTexCoord = aTexCoord;
+  // Convert position to texture coordinates (0-1)
+  // In WEBGL mode: position ranges from -width/2 to width/2
+  vTexCoord = aPosition.xy * 0.5 + 0.5;
+  vTexCoord.y = 1.0 - vTexCoord.y; // Flip Y for correct orientation
   gl_Position = vec4(aPosition, 1.0);
 }
 `;
@@ -439,8 +441,12 @@ export class VoronoiPattern extends BasePattern {
     // Render to graphics buffer
     this.pg.shader(this.voronoiShader);
     this.pg.noStroke();
-    this.pg.rectMode(p.CORNER);
+    // In WEBGL mode, draw from center with plane() or rect with centered coordinates
+    this.pg.push();
+    this.pg.rectMode(p.CENTER);
+    this.pg.translate(-this.pg.width / 2, -this.pg.height / 2);
     this.pg.rect(0, 0, this.pg.width, this.pg.height);
+    this.pg.pop();
 
     // Draw graphics buffer to main canvas
     p.image(this.pg, 0, 0);
