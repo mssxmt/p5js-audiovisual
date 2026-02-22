@@ -101,11 +101,8 @@ export class WireframeTerrainPattern extends BasePattern {
   // Terrain grid (2D array of TerrainPoint)
   protected terrain: TerrainPoint[][] = [];
 
-  // Time tracking
+  // Time tracking (used for Perlin noise animation)
   protected time = 0;
-
-  // Setup state
-  protected isSetup = false;
 
   // Reinitialization flag
   private needsReinit = false;
@@ -219,7 +216,7 @@ export class WireframeTerrainPattern extends BasePattern {
   /**
    * Handle canvas resize
    */
-  override resize(p: p5): void {
+  override resize(p: p5, _width: number, _height: number): void {
     this.initializeTerrain(p);
   }
 }
