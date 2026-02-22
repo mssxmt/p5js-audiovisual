@@ -289,11 +289,11 @@ export class VoronoiPattern extends BasePattern {
 
   /**
    * Draw Voronoi diagram using pixel-by-pixel approach
-   * For performance, we use a lower resolution and scale up
+   * Full resolution for smooth appearance
    */
   private drawVoronoi(p: p5): void {
-    // Use a lower resolution for performance (lower = smoother)
-    const scaleFactor = 2;
+    // Full resolution for smooth appearance
+    const scaleFactor = 1;
 
     p.loadPixels();
 
@@ -351,7 +351,7 @@ export class VoronoiPattern extends BasePattern {
    * Draw Voronoi cell boundaries
    */
   private drawBoundaries(p: p5): void {
-    const scaleFactor = 2;
+    const scaleFactor = 1;
 
     p.stroke(255);
     p.strokeWeight(this.params.boundaryWidth);
