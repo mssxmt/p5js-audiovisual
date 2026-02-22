@@ -110,7 +110,6 @@ export class CosmicNebulaPattern extends BasePattern {
   protected params: CosmicNebulaParams;
 
   // Star system
-  // @ts-expect-error - Used in Task 2 (initializeStars, update)
   private _stars: Star[] = [];
 
   // Gas nebula
@@ -122,7 +121,6 @@ export class CosmicNebulaPattern extends BasePattern {
   private _camAngle = 0;
 
   // Color shift for treble
-  // @ts-expect-error - Used in Task 4 (update)
   private _colorShift = 0;
 
   // @ts-expect-error - Used in Task 4 (update)
@@ -183,8 +181,150 @@ export class CosmicNebulaPattern extends BasePattern {
   }
 
   // Placeholder methods (implemented in later tasks)
-  private initializeStars(_p: p5): void { /* Task 2 */ }
   private initializeGas(_p: p5): void { /* Task 3 */ }
+
+  /**
+   * Initialize star field
+   */
+  private initializeStars(p: p5): void {
+    this._stars = [];
+    const spread = 1000;
+
+    for (let i = 0; i < this.params.starCount; i++) {
+      // Position in 3D space
+      const pos = p.createVector(
+        p.random(-spread, spread),
+        p.random(-spread * 0.5, spread * 0.5),
+        p.random(-spread, spread)
+      );
+
+      // Categorize by size (affects brightness and speed)
+      const sizeCat = Math.random();
+      let size: number;
+      let brightness: number;
+      let twinklePhase: number;
+
+      if (sizeCat < 0.7) {
+        // Small stars (70%)
+        size = p.random(0.5, 1.5);
+        brightness = p.random(0.3, 0.6);
+        twinklePhase = p.random(p.TWO_PI);
+      } else if (sizeCat < 0.95) {
+        // Medium stars (25%)
+        size = p.random(1.5, 3);
+        brightness = p.random(0.5, 0.8);
+        twinklePhase = p.random(p.TWO_PI);
+      } else {
+        // Large bright stars (5%)
+        size = p.random(3, 5);
+        brightness = p.random(0.8, 1);
+        twinklePhase = p.random(p.TWO_PI);
+      }
+
+      this._stars.push({
+        pos,
+        vel: p.createVector(0, 0, 0),
+        size: size * this.params.starSize * 0.5,
+        brightness,
+        hue: p.random(200, 280), // Blue to purple range
+        twinklePhase,
+        age: 0,
+        maxAge: p.random(500, 2000),
+      });
+    }
+  }
+
+  /**
+   * Update star system
+   */
+  // @ts-expect-error - Used in Task 4 (update method)
+  private updateStars(p: p5, bassLevel: number): void {
+    // Spawn new stars on bass
+    const spawnCount = Math.floor(bassLevel * this.params.bassStarSpawn);
+    if (spawnCount > 0 && this._stars.length < this.params.starCount * 1.5) {
+      for (let i = 0; i < spawnCount; i++) {
+        const spread = 1000;
+        const pos = p.createVector(
+          p.random(-spread, spread),
+          p.random(-spread * 0.5, spread * 0.5),
+          p.random(-spread, spread)
+        );
+
+        const sizeCat = Math.random();
+        const size = sizeCat < 0.9 ? p.random(0.5, 2) : p.random(2, 4);
+
+        this._stars.push({
+          pos,
+          vel: p.createVector(0, 0, 0),
+          size: size * this.params.starSize * 0.5,
+          brightness: 1,
+          hue: p.random(200, 280),
+          twinklePhase: p.random(p.TWO_PI),
+          age: 0,
+          maxAge: p.random(300, 1000),
+        });
+      }
+    }
+
+    // Update existing stars
+    for (const star of this._stars) {
+      // Twinkle effect
+      star.twinklePhase += this.params.twinkleSpeed;
+
+      // Slow drift
+      star.pos.x += p.random(-0.1, 0.1);
+      star.pos.y += p.random(-0.1, 0.1);
+      star.pos.z += p.random(-0.1, 0.1);
+
+      // Age star
+      star.age++;
+
+      // Respawn old stars
+      if (star.age > star.maxAge) {
+        const spread = 1000;
+        star.pos = p.createVector(
+          p.random(-spread, spread),
+          p.random(-spread * 0.5, spread * 0.5),
+          p.random(-spread, spread)
+        );
+        star.age = 0;
+        star.maxAge = p.random(500, 2000);
+        star.brightness = Math.random();
+      }
+    }
+
+    // Remove excess stars
+    while (this._stars.length > this.params.starCount * 1.5) {
+      this._stars.shift();
+    }
+  }
+
+  /**
+   * Draw stars with additive blending
+   */
+  // @ts-expect-error - Used in Task 5 (draw method)
+  private drawStars(p: p5): void {
+    const hueShift = this._colorShift;
+
+    for (const star of this._stars) {
+      const twinkle = (Math.sin(star.twinklePhase) + 1) / 2;
+      const brightness = star.brightness * (0.5 + twinkle * 0.5);
+      const hue = (star.hue + hueShift) % 360;
+
+      p.noStroke();
+      p.fill(hue, 30, brightness * 255, 0.8);
+
+      // Additive blending for glow effect
+      p.blendMode(p.ADD);
+
+      p.push();
+      p.translate(star.pos.x, star.pos.y, star.pos.z);
+      p.circle(0, 0, star.size);
+      p.pop();
+
+      p.blendMode(p.BLEND);
+    }
+  }
 
   override cleanup(_p: p5): void {
     this._stars = [];
