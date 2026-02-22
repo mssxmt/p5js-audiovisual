@@ -128,6 +128,21 @@
 - **パラメータ**: layerCount, layerSpacing, barDensity, scrollSpeed, dataCount, waveformScale, redThreshold, camRadius, camSpeed, camAngleX/Y, scanlineEnabled, etc.
 - **ファイル**: `src/patterns/Ikeda3DPattern.ts`
 
+### 9. VoronoiPattern (Key 9)
+- **概要**: 動的ボロノイ図ビジュアライゼーション
+- **特徴**:
+  - 移動するシード点に基づくリアルタイムボロノイ図
+  - 3種類の移動パターン（ブラウニアン運動、リサージュ曲線、Perlinノイズ）
+  - オプションの境界線表示
+  - オプションのドローネ三角形分割オーバーレイ
+  - ピクセルベースレンダリング（4xスケーリングでパフォーマンス確保）
+- **オーディオ反応**:
+  - Bass → シード点の移動速度乗数
+  - Mid → 新しいシード点スポーン
+  - Treble → 色相シフト
+- **パラメータ**: seedCount, movementSpeed, movementType, boundaryWidth, baseHue, hueVariation, showBoundaries, showDelaunay, bassSpeedMult, midSpawnRate, trebleHueShift, etc.
+- **ファイル**: `src/patterns/VoronoiPattern.ts`
+
 ---
 
 ## コアアーキテクチャ
@@ -313,7 +328,8 @@ src/
 │   ├── FlowFieldPattern.ts    # Key 5
 │   ├── BloodVesselPattern.ts  # Key 6
 │   ├── WireframeTerrainPattern.ts # Key 7
-│   └── Ikeda3DPattern.ts      # Key 8
+│   ├── Ikeda3DPattern.ts      # Key 8
+│   └── VoronoiPattern.ts      # Key 9
 └── types/                  # 型定義
 ```
 
