@@ -112,8 +112,8 @@
 - **パラメータ**: gridSize, wireThickness, wireDensity, baseHue, rotationSpeed, etc.
 - **ファイル**: `src/patterns/WireframeTerrainPattern.ts`
 
-### 8. Ikeda3DPattern (Key 8)
-- **概要**: Ryoji Ikedaスタイル3Dデータビジュアライゼーション
+### 8. Barcode3DPattern (Key 8)
+- **概要**: 3Dバーコードデータビジュアライゼーション
 - **特徴**:
   - 3Dバーコードレイヤー（空間に浮遊するストライプ）
   - 浮遊する数値データ（周波数値を表示）
@@ -126,7 +126,7 @@
   - Mid → 数値ジッター/ノイズ
   - Treble → 赤スキャンライン発光
 - **パラメータ**: layerCount, layerSpacing, barDensity, scrollSpeed, dataCount, waveformScale, redThreshold, camRadius, camSpeed, camAngleX/Y, scanlineEnabled, etc.
-- **ファイル**: `src/patterns/Ikeda3DPattern.ts`
+- **ファイル**: `src/patterns/Barcode3DPattern.ts`
 
 ---
 
@@ -313,7 +313,7 @@ src/
 │   ├── FlowFieldPattern.ts    # Key 5
 │   ├── BloodVesselPattern.ts  # Key 6
 │   ├── WireframeTerrainPattern.ts # Key 7
-│   └── Ikeda3DPattern.ts      # Key 8
+│   └── Barcode3DPattern.ts      # Key 8
 └── types/                  # 型定義
 ```
 
