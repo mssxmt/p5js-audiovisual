@@ -127,11 +127,15 @@ export class WireframeTerrainPattern extends BasePattern {
    */
   setParams(params: Partial<WireframeTerrainParams>): void {
     const oldGridSize = this.params.gridSize;
+    const oldCellSize = this.params.cellSize;
 
     this.params = { ...this.params, ...params };
 
-    // Check if grid size changed - requires reinitialization
-    if (params.gridSize !== undefined && params.gridSize !== oldGridSize) {
+    // Check if grid size or cell size changed - requires reinitialization
+    if (
+      (params.gridSize !== undefined && params.gridSize !== oldGridSize) ||
+      (params.cellSize !== undefined && params.cellSize !== oldCellSize)
+    ) {
       this.needsReinit = true;
     }
   }
