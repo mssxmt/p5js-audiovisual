@@ -104,6 +104,9 @@ export class WireframeTerrainPattern extends BasePattern {
   // Time tracking (used for Perlin noise animation)
   protected time = 0;
 
+  // Treble shift for color modulation
+  private trebleShift = 0;
+
   // Reinitialization flag
   private needsReinit = false;
 
@@ -197,16 +200,90 @@ export class WireframeTerrainPattern extends BasePattern {
     // Update camera rotation
     this.params.rotationY += this.params.rotationSpeed;
 
+    // Store treble shift for color modulation
+    this.trebleShift = trebleLevel * this.params.trebleColorShift;
+
     // Update terrain with audio reactivity
     this.updateTerrain(p, bassLevel, midLevel, trebleLevel);
   }
 
   /**
    * Draw pattern
-   * Will be implemented in Task 4
+   * Renders the wireframe terrain with 3D transforms and audio-reactive coloring
    */
-  override draw(_p: p5, _options: PatternRenderOptions): void {
-    // Placeholder - will implement rendering in Task 4
+  override draw(p: p5, options: PatternRenderOptions): void {
+    // Draw background
+    this.drawBackground(p, options);
+
+    // Set up 3D rendering
+    p.push();
+
+    // Apply camera transforms
+    p.rotateX(this.params.rotationX);
+    p.rotateY(this.params.rotationY);
+    p.translate(0, this.params.cameraHeight, 0);
+
+    // Set wireframe style
+    p.colorMode(p.HSL);
+    const hue = (this.params.baseHue + this.trebleShift) % 360;
+    p.stroke(hue, this.params.saturation, this.params.brightness, 0.8);
+    p.strokeWeight(this.params.wireThickness);
+    p.noFill();
+
+    // Draw wireframe terrain
+    this.drawWireframe(p);
+
+    p.pop();
+  }
+
+  /**
+   * Draw background with optional trail effect
+   * @param p - p5 instance
+   * @param options - Render options containing clearBackground flag
+   */
+  protected override drawBackground(p: p5, options: PatternRenderOptions): void {
+    if (options.clearBackground) {
+      p.clear();
+    } else {
+      // Use HSL mode for consistency with wireframe
+      p.push();
+      p.colorMode(p.HSL);
+      p.background(0, this.params.backgroundAlpha * 255);
+      p.pop();
+    }
+  }
+
+  /**
+   * Draw wireframe grid lines
+   * Draws both horizontal (along X) and vertical (along Z) lines
+   * @param p - p5 instance
+   */
+  private drawWireframe(p: p5): void {
+    const { wireDensity } = this.params;
+    const gridSize = this.terrain.length;
+
+    // Calculate step from wireDensity (higher density = smaller step)
+    const step = Math.max(1, Math.floor(6 - wireDensity));
+
+    // Draw horizontal lines (along X axis)
+    for (let j = 0; j <= gridSize; j += step) {
+      p.beginShape();
+      for (let i = 0; i <= gridSize; i++) {
+        const point = this.terrain[i][j];
+        p.vertex(point.x, point.y, point.z);
+      }
+      p.endShape();
+    }
+
+    // Draw vertical lines (along Z axis)
+    for (let i = 0; i <= gridSize; i += step) {
+      p.beginShape();
+      for (let j = 0; j <= gridSize; j++) {
+        const point = this.terrain[i][j];
+        p.vertex(point.x, point.y, point.z);
+      }
+      p.endShape();
+    }
   }
 
   /**
