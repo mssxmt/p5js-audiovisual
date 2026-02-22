@@ -120,8 +120,7 @@ export class CircuitBoardPattern extends BasePattern {
   protected isSetup = false;
   private needsReinit = false;
 
-  // Node type colors (hue offsets) - used in Task 5 (draw method)
-  // @ts-ignore: Used in Task 5 (draw method)
+  // Node type colors (hue offsets)
   private readonly NODE_TYPE_COLORS: Record<NodeType, number> = {
     CPU: 0,    // Base hue
     RAM: 30,   // +30°
@@ -195,7 +194,170 @@ export class CircuitBoardPattern extends BasePattern {
    */
   override draw(p: p5, options: PatternRenderOptions): void {
     this.drawBackground(p, options);
-    // Placeholder - full implementation in Task 5
+
+    p.push();
+
+    // Draw traces (bottom layer)
+    this.drawTraces(p);
+
+    // Draw nodes (top layer)
+    this.drawNodes(p);
+
+    p.pop();
+  }
+
+  /**
+   * Draw circuit traces
+   */
+  private drawTraces(p: p5): void {
+    const baseHue = this.params.baseHue;
+    const layerHueShift = this.params.layerHueShift;
+    const traceWidth = this.params.traceWidth;
+
+    p.colorMode(p.HSL);
+
+    for (const trace of this.traces) {
+      if (trace.progress <= 0) continue;
+
+      // Calculate color based on layer
+      const hue = (baseHue + trace.layer * layerHueShift + trace.colorOffset) % 360;
+      const saturation = 80;
+      const brightness = 60;
+
+      p.stroke(hue, saturation, brightness, 0.9);
+      p.strokeWeight(traceWidth);
+      p.noFill();
+
+      // Draw trace path up to progress
+      p.beginShape();
+      const totalSegments = trace.path.length - 1;
+      const currentSegment = trace.progress * totalSegments;
+      const segmentIndex = Math.floor(currentSegment);
+      const segmentT = currentSegment - segmentIndex;
+
+      for (let i = 0; i <= segmentIndex && i < trace.path.length; i++) {
+        const point = trace.path[i];
+        p.vertex(point.x, point.y);
+      }
+
+      // Add partial segment
+      if (segmentIndex < totalSegments) {
+        const p1 = trace.path[segmentIndex];
+        const p2 = trace.path[segmentIndex + 1];
+        const x = p.lerp(p1.x, p2.x, segmentT);
+        const y = p.lerp(p1.y, p2.y, segmentT);
+        p.vertex(x, y);
+      }
+
+      p.endShape();
+
+      // Draw data flow if trace is complete
+      if (trace.progress >= 1 && trace.dataFlow > 0) {
+        this.drawDataFlow(p, trace, hue);
+      }
+    }
+
+    p.colorMode(p.RGB);
+  }
+
+  /**
+   * Draw data flow animation along trace
+   */
+  private drawDataFlow(p: p5, trace: CircuitTrace, hue: number): void {
+    const totalLength = this.getPathLength(p, trace.path);
+    const flowPos = trace.dataFlow * totalLength;
+
+    // Find position along path
+    let distance = 0;
+    for (let i = 0; i < trace.path.length - 1; i++) {
+      const p1 = trace.path[i];
+      const p2 = trace.path[i + 1];
+      const segmentLength = p.dist(p1.x, p1.y, p2.x, p2.y);
+
+      if (distance + segmentLength >= flowPos) {
+        // Data packet is on this segment
+        const t = (flowPos - distance) / segmentLength;
+        const x = p.lerp(p1.x, p2.x, t);
+        const y = p.lerp(p1.y, p2.y, t);
+
+        // Draw glowing data packet
+        p.colorMode(p.HSL);
+        p.noStroke();
+        p.fill(hue, 100, 90, 1);
+        p.circle(x, y, this.params.traceWidth * 2.5);
+        p.colorMode(p.RGB);
+        break;
+      }
+
+      distance += segmentLength;
+    }
+  }
+
+  /**
+   * Calculate total path length
+   */
+  private getPathLength(p: p5, path: p5.Vector[]): number {
+    let length = 0;
+    for (let i = 0; i < path.length - 1; i++) {
+      length += p.dist(path[i].x, path[i].y, path[i + 1].x, path[i + 1].y);
+    }
+    return length;
+  }
+
+  /**
+   * Draw circuit nodes
+   */
+  private drawNodes(p: p5): void {
+    const baseHue = this.params.baseHue;
+    const glowIntensity = this.params.glowIntensity;
+
+    p.colorMode(p.HSL);
+
+    for (const node of this.nodes) {
+      const typeColorOffset = this.NODE_TYPE_COLORS[node.type];
+      const hue = (baseHue + typeColorOffset) % 360;
+
+      // Pulse effect
+      const pulse = (Math.sin(node.pulsePhase) + 1) / 2; // 0-1
+      const brightness = 50 + pulse * 30;
+
+      // Draw node body
+      p.stroke(hue, 70, brightness, 0.9);
+      p.strokeWeight(1.5);
+      p.fill(hue, 50, brightness * 0.5, 0.7);
+
+      // Shape based on node type
+      if (node.type === 'CPU') {
+        // Square for CPU
+        p.rectMode(p.CENTER);
+        p.rect(node.x, node.y, node.size, node.size);
+      } else if (node.type === 'RAM') {
+        // Rectangle for RAM
+        p.rectMode(p.CENTER);
+        p.rect(node.x, node.y, node.size * 1.2, node.size * 0.6);
+      } else if (node.type === 'POWER') {
+        // Circle for POWER
+        p.circle(node.x, node.y, node.size);
+      } else {
+        // Small square for IO
+        p.rectMode(p.CENTER);
+        p.rect(node.x, node.y, node.size, node.size);
+      }
+
+      // Draw glow effect
+      if (glowIntensity > 0) {
+        p.noStroke();
+        p.fill(hue, 70, 80, glowIntensity * 0.3);
+        if (node.type === 'POWER') {
+          p.circle(node.x, node.y, node.size * 1.5);
+        } else {
+          p.rectMode(p.CENTER);
+          p.rect(node.x, node.y, node.size * 1.3, node.size * 1.3);
+        }
+      }
+    }
+
+    p.colorMode(p.RGB);
   }
 
   /**
