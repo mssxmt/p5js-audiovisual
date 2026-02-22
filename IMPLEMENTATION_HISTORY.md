@@ -85,6 +85,19 @@
 - **パラメータ**: particleCount, noiseScale, timeSpeed, flowStrength, trailFade
 - **ファイル**: `src/patterns/FlowFieldPattern.ts`
 
+### 6. WireframeTerrainPattern (Key 6)
+- **概要**: 2.5次元ワイヤーフレーム地形
+- **特徴**:
+  - オーディオリアクティブに構築される地形
+  - ワイヤーフレームデザイン
+  - カメラ回転・視点変更可能
+- **オーディオ反応**:
+  - Bass → 地形の高さ
+  - Mid → 地形の複雑さ
+  - Treble → 色相シフト
+- **パラメータ**: gridSize, wireThickness, wireDensity, baseHue, rotationSpeed, etc.
+- **ファイル**: `src/patterns/WireframeTerrainPattern.ts`
+
 ---
 
 ## コアアーキテクチャ
@@ -262,12 +275,13 @@ src/
 │   ├── MidiManager.ts      # MIDI処理
 │   └── InputManager.ts     # 入力管理
 ├── patterns/
-│   ├── BasePattern.ts      # 基底クラス
-│   ├── BlackHolePattern.ts # Key 1
-│   ├── GargantuaPattern.ts # Key 2
-│   ├── DataPattern.ts      # Key 3
-│   ├── ThreeDPattern.ts    # Key 4
-│   └── FlowFieldPattern.ts # Key 5
+│   ├── BasePattern.ts         # 基底クラス
+│   ├── BlackHolePattern.ts    # Key 1
+│   ├── GargantuaPattern.ts    # Key 2
+│   ├── DataPattern.ts         # Key 3
+│   ├── ThreeDPattern.ts       # Key 4
+│   ├── FlowFieldPattern.ts    # Key 5
+│   └── WireframeTerrainPattern.ts # Key 6
 └── types/                  # 型定義
 ```
 
