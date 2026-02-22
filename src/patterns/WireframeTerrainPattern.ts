@@ -176,15 +176,6 @@ export class WireframeTerrainPattern extends BasePattern {
   }
 
   /**
-   * Initialize terrain grid
-   * Will be implemented in Task 2
-   */
-  private initializeTerrain(_p: p5): void {
-    // Placeholder - will implement terrain generation in Task 2
-    this.terrain = [];
-  }
-
-  /**
    * Update pattern state
    * Will be implemented in Task 3
    */
@@ -218,5 +209,50 @@ export class WireframeTerrainPattern extends BasePattern {
    */
   override resize(p: p5, _width: number, _height: number): void {
     this.initializeTerrain(p);
+  }
+
+  /**
+   * Initialize terrain grid
+   * Creates a 2D grid of terrain points centered around origin
+   */
+  private initializeTerrain(_p: p5): void {
+    const { gridSize, cellSize } = this.params;
+
+    // Clear existing terrain
+    this.terrain = [];
+
+    // Calculate offset to center terrain
+    const offset = (gridSize * cellSize) / 2;
+
+    // Create 2D array of TerrainPoint with flat terrain (y=0 initially)
+    for (let i = 0; i <= gridSize; i++) {
+      const row: TerrainPoint[] = [];
+      for (let j = 0; j <= gridSize; j++) {
+        row.push({
+          x: i * cellSize - offset,
+          y: 0,
+          z: j * cellSize - offset,
+          baseY: 0,
+          targetY: 0,
+        });
+      }
+      this.terrain.push(row);
+    }
+  }
+
+  /**
+   * Calculate target height for a terrain point using Perlin noise
+   * @param p - p5 instance
+   * @param x - X position in terrain space
+   * @param z - Z position in terrain space
+   * @param chaosMult - Chaos multiplier for audio reactivity
+   * @returns Target Y height based on Perlin noise
+   *
+   * Note: Used in Task 3 for audio-reactive terrain updates
+   */
+  // @ts-expect-error - Method will be used in Task 3
+  private calculateTargetHeight(p: p5, x: number, z: number, chaosMult: number): number {
+    const scale = this.params.terrainScale * chaosMult;
+    return p.noise(x * scale, z * scale, this.time) * this.params.maxHeight;
   }
 }
