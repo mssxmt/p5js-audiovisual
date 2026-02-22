@@ -94,13 +94,13 @@ const DEFAULT_PARAMS: CosmicNebulaParams = {
   nebulaHue: 280,           // Purple/blue
   bgHue: 240,
   bgSaturation: 30,
-  bgBrightness: 5,
+  bgBrightness: 0,
   bassStarSpawn: 2.0,
   midGasFlow: 1.5,
   trebleColorShift: 60,
   camSpeed: 0.002,
   camZoom: 1.0,
-  backgroundAlpha: 0.1,
+  backgroundAlpha: 0.4,
 };
 
 /**
