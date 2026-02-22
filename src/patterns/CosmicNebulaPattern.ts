@@ -116,7 +116,6 @@ export class CosmicNebulaPattern extends BasePattern {
   private _gasParticles: GasParticle[] = [];
 
   // Camera
-  // @ts-expect-error - Used in Task 4 (update, draw)
   private _camAngle = 0;
 
   // Color shift for treble
@@ -125,7 +124,7 @@ export class CosmicNebulaPattern extends BasePattern {
   // Time for gas pulsation
   private _time = 0;
 
-  // @ts-expect-error - Used in Task 4 (update)
+  // Reinitialization flag
   private _needsReinit = false;
 
   constructor() {
@@ -216,7 +215,6 @@ export class CosmicNebulaPattern extends BasePattern {
   /**
    * Update gas particles with spiral flow
    */
-  // @ts-expect-error - Used in Task 4 (update method)
   private updateGas(p: p5, midLevel: number): void {
     const flowSpeed = this.params.gasFlowSpeed * (1 + midLevel * this.params.midGasFlow);
 
@@ -318,7 +316,6 @@ export class CosmicNebulaPattern extends BasePattern {
   /**
    * Update star system
    */
-  // @ts-expect-error - Used in Task 4 (update method)
   private updateStars(p: p5, bassLevel: number): void {
     // Spawn new stars on bass
     const spawnCount = Math.floor(bassLevel * this.params.bassStarSpawn);
@@ -418,11 +415,36 @@ export class CosmicNebulaPattern extends BasePattern {
     this.initializeGas(p);
   }
 
-  // Override update/draw in later tasks
-  override update(_p: p5, _context: PatternContext): void {
+  /**
+   * Update pattern state with audio reactivity
+   */
+  override update(p: p5, context: PatternContext): void {
+    // Reinitialize if parameters changed
+    if (this._needsReinit) {
+      this.initializeStars(p);
+      this.initializeGas(p);
+      this._needsReinit = false;
+    }
+
+    // Get audio frequency bands
+    const bassLevel = this.getAudioBand(context.audio, 'bass');
+    const midLevel = this.getAudioBand(context.audio, 'mid');
+    const trebleLevel = this.getAudioBand(context.audio, 'treble');
+
     // Update time for gas pulsation
     this._time += 0.016;
-    // Full implementation in Task 4
+
+    // Update camera auto-rotation
+    this._camAngle += this.params.camSpeed;
+
+    // Calculate color shift from treble
+    this._colorShift = trebleLevel * this.params.trebleColorShift;
+
+    // Update stars with bass reactivity
+    this.updateStars(p, bassLevel);
+
+    // Update gas with mid reactivity
+    this.updateGas(p, midLevel);
   }
   override draw(_p: p5, _options: PatternRenderOptions): void { /* Task 5 */ }
 }
