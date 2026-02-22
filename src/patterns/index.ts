@@ -4,4 +4,5 @@ export { GargantuaPattern } from './GargantuaPattern';
 export { DataPattern } from './DataPattern';
 export { ThreeDPattern } from './ThreeDPattern';
 export { FlowFieldPattern } from './FlowFieldPattern';
+export { BloodVesselPattern } from './BloodVesselPattern';
 export type { IBasePattern, PatternContext, PatternRenderOptions } from '../types/pattern';
