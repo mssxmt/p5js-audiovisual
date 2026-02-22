@@ -31,8 +31,8 @@ interface TerrainPoint {
  */
 interface WireframeTerrainParams {
   // Grid configuration
-  gridSize: number;        // Number of grid cells (10-50)
-  cellSize: number;        // Size of each cell (10-50)
+  gridSize: number;        // Number of grid cells (10-100)
+  cellSize: number;        // Size of each cell (5-50)
   terrainScale: number;    // Perlin noise scale (0.01-0.1)
   buildSpeed: number;      // Speed of terrain morphing (0.001-0.05)
   maxHeight: number;       // Maximum terrain height (50-300)
@@ -54,6 +54,7 @@ interface WireframeTerrainParams {
   rotationY: number;       // Horizontal rotation (0 to 2PI)
   rotationSpeed: number;   // Auto-rotation speed (0-0.01)
   cameraHeight: number;    // Camera height offset (-200 to 200)
+  scale: number;           // Overall terrain scale (0.1-5.0) - zoom in/out
 
   // Background
   backgroundAlpha: number; // Background trail effect (0-1)
@@ -89,6 +90,7 @@ const DEFAULT_PARAMS: WireframeTerrainParams = {
   rotationY: 0,
   rotationSpeed: 0.003,
   cameraHeight: 0,
+  scale: 1.0,
   backgroundAlpha: 0.3,
 };
 
@@ -145,8 +147,8 @@ export class WireframeTerrainPattern extends BasePattern {
    */
   getParamMeta(): Record<string, { min: number; max: number; step: number }> {
     return {
-      gridSize: { min: 10, max: 50, step: 1 },
-      cellSize: { min: 10, max: 50, step: 1 },
+      gridSize: { min: 10, max: 100, step: 1 },
+      cellSize: { min: 5, max: 50, step: 1 },
       terrainScale: { min: 0.01, max: 0.1, step: 0.001 },
       buildSpeed: { min: 0.001, max: 0.05, step: 0.001 },
       maxHeight: { min: 50, max: 300, step: 10 },
@@ -162,6 +164,7 @@ export class WireframeTerrainPattern extends BasePattern {
       rotationY: { min: 0, max: Math.PI * 2, step: 0.01 },
       rotationSpeed: { min: 0, max: 0.01, step: 0.0001 },
       cameraHeight: { min: -200, max: 200, step: 10 },
+      scale: { min: 0.1, max: 5.0, step: 0.1 },
       backgroundAlpha: { min: 0, max: 1, step: 0.01 },
     };
   }
@@ -235,6 +238,7 @@ export class WireframeTerrainPattern extends BasePattern {
     p.rotateX(this.params.rotationX);
     p.rotateY(this.params.rotationY);
     p.translate(0, this.params.cameraHeight, 0);
+    p.scale(this.params.scale);
 
     // Set wireframe style
     p.colorMode(p.HSL);
