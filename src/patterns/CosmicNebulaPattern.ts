@@ -243,7 +243,6 @@ export class CosmicNebulaPattern extends BasePattern {
   /**
    * Draw gas nebula
    */
-  // @ts-expect-error - Used in Task 5 (draw method)
   private drawGas(p: p5): void {
     p.noStroke();
 
@@ -380,7 +379,6 @@ export class CosmicNebulaPattern extends BasePattern {
   /**
    * Draw stars with additive blending
    */
-  // @ts-expect-error - Used in Task 5 (draw method)
   private drawStars(p: p5): void {
     const hueShift = this._colorShift;
 
@@ -446,5 +444,55 @@ export class CosmicNebulaPattern extends BasePattern {
     // Update gas with mid reactivity
     this.updateGas(p, midLevel);
   }
-  override draw(_p: p5, _options: PatternRenderOptions): void { /* Task 5 */ }
+
+  /**
+   * Draw pattern with 3D camera setup
+   */
+  override draw(p: p5, options: PatternRenderOptions): void {
+    // Draw background
+    this.drawBackground(p, options);
+
+    p.push();
+
+    // Set up camera with rotation
+    p.camera(
+      0, 0, (p.height / 2) / Math.tan(p.PI / 6) / this.params.camZoom,
+      0, 0, 0,
+      0, 1, 0
+    );
+
+    // Rotate entire scene for orbital effect
+    p.rotateY(this._camAngle);
+
+    // Set color mode to HSB for consistent color handling
+    p.colorMode(p.HSB, 360, 100, 100, 255);
+
+    // Draw layers in order (background to foreground)
+    this.drawGas(p);     // Gas nebula (behind stars)
+    this.drawStars(p);   // Stars (on top)
+
+    p.pop();
+  }
+
+  /**
+   * Draw background with trail effect
+   */
+  protected override drawBackground(p: p5, options: PatternRenderOptions): void {
+    p.push();
+    p.colorMode(p.HSB, 360, 100, 100, 255);
+
+    if (options.clearBackground) {
+      p.clear();
+    } else {
+      // Dark space background with trail effect
+      p.background(
+        this.params.bgHue,
+        this.params.bgSaturation,
+        this.params.bgBrightness,
+        this.params.backgroundAlpha * 255
+      );
+    }
+
+    p.pop();
+  }
 }
