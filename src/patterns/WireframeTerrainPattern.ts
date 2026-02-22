@@ -212,6 +212,15 @@ export class WireframeTerrainPattern extends BasePattern {
    * Renders the wireframe terrain with 3D transforms and audio-reactive coloring
    */
   override draw(p: p5, options: PatternRenderOptions): void {
+    // Debug logging
+    console.log('[WireframeTerrainPattern] draw called', {
+      terrainLength: this.terrain.length,
+      hasTerrain: this.terrain.length > 0,
+      gridSize: this.params.gridSize,
+      wireDensity: this.params.wireDensity,
+      baseHue: this.params.baseHue,
+    });
+
     // Draw background
     this.drawBackground(p, options);
 
@@ -262,25 +271,41 @@ export class WireframeTerrainPattern extends BasePattern {
     const { wireDensity } = this.params;
     const gridSize = this.terrain.length;
 
+    // Safety check: verify terrain is properly initialized
+    if (gridSize === 0) {
+      console.warn('[WireframeTerrainPattern] Terrain not initialized');
+      return;
+    }
+
     // Calculate step from wireDensity (higher density = smaller step)
     const step = Math.max(1, Math.floor(6 - wireDensity));
 
     // Draw horizontal lines (along X axis)
-    for (let j = 0; j <= gridSize; j += step) {
+    for (let j = 0; j < gridSize; j += step) {
+      const row = this.terrain[j];
+      if (!row) continue;
+
       p.beginShape();
-      for (let i = 0; i <= gridSize; i++) {
-        const point = this.terrain[i][j];
-        p.vertex(point.x, point.y, point.z);
+      for (let i = 0; i < row.length; i++) {
+        const point = row[i];
+        if (point) {
+          p.vertex(point.x, point.y, point.z);
+        }
       }
       p.endShape();
     }
 
     // Draw vertical lines (along Z axis)
-    for (let i = 0; i <= gridSize; i += step) {
+    for (let i = 0; i < gridSize; i += step) {
+      const row = this.terrain[i];
+      if (!row) continue;
+
       p.beginShape();
-      for (let j = 0; j <= gridSize; j++) {
-        const point = this.terrain[i][j];
-        p.vertex(point.x, point.y, point.z);
+      for (let j = 0; j < row.length; j++) {
+        const point = row[j];
+        if (point) {
+          p.vertex(point.x, point.y, point.z);
+        }
       }
       p.endShape();
     }
