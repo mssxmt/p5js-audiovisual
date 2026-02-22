@@ -292,8 +292,8 @@ export class VoronoiPattern extends BasePattern {
    * For performance, we use a lower resolution and scale up
    */
   private drawVoronoi(p: p5): void {
-    // Use a lower resolution for performance
-    const scaleFactor = 4;
+    // Use a lower resolution for performance (lower = smoother)
+    const scaleFactor = 2;
 
     p.loadPixels();
 
@@ -351,7 +351,7 @@ export class VoronoiPattern extends BasePattern {
    * Draw Voronoi cell boundaries
    */
   private drawBoundaries(p: p5): void {
-    const scaleFactor = 4;
+    const scaleFactor = 2;
 
     p.stroke(255);
     p.strokeWeight(this.params.boundaryWidth);
