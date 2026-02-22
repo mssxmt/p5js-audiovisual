@@ -85,7 +85,21 @@
 - **パラメータ**: particleCount, noiseScale, timeSpeed, flowStrength, trailFade
 - **ファイル**: `src/patterns/FlowFieldPattern.ts`
 
-### 6. WireframeTerrainPattern (Key 6)
+### 6. BloodVesselPattern (Key 6)
+- **概要**: アキラ風血管ビジュアライゼーション
+- **特徴**:
+  - 有機的血管分岐成長
+  - 脈動アニメーション（Bass反応）
+  - ランダム位置から生成
+  - ベートトリガーで新規血管生成
+- **オーディオ反応**:
+  - Bass → 脈動強度
+  - Mid → 成長速度・分岐頻度
+  - Treble → 色相シフト
+- **パラメータ**: vesselCount, baseThickness, pulseIntensity, baseHue, beatThreshold, etc.
+- **ファイル**: `src/patterns/BloodVesselPattern.ts`
+
+### 7. WireframeTerrainPattern (Key 7)
 - **概要**: 2.5次元ワイヤーフレーム地形
 - **特徴**:
   - オーディオリアクティブに構築される地形
@@ -281,7 +295,8 @@ src/
 │   ├── DataPattern.ts         # Key 3
 │   ├── ThreeDPattern.ts       # Key 4
 │   ├── FlowFieldPattern.ts    # Key 5
-│   └── WireframeTerrainPattern.ts # Key 6
+│   ├── BloodVesselPattern.ts  # Key 6
+│   └── WireframeTerrainPattern.ts # Key 7
 └── types/                  # 型定義
 ```
 
