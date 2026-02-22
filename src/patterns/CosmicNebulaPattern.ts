@@ -113,7 +113,6 @@ export class CosmicNebulaPattern extends BasePattern {
   private _stars: Star[] = [];
 
   // Gas nebula
-  // @ts-expect-error - Used in Task 3 (initializeGas, update)
   private _gasParticles: GasParticle[] = [];
 
   // Camera
@@ -122,6 +121,9 @@ export class CosmicNebulaPattern extends BasePattern {
 
   // Color shift for treble
   private _colorShift = 0;
+
+  // Time for gas pulsation
+  private _time = 0;
 
   // @ts-expect-error - Used in Task 4 (update)
   private _needsReinit = false;
@@ -181,7 +183,86 @@ export class CosmicNebulaPattern extends BasePattern {
   }
 
   // Placeholder methods (implemented in later tasks)
-  private initializeGas(_p: p5): void { /* Task 3 */ }
+
+  /**
+   * Initialize gas nebula particles
+   */
+  private initializeGas(p: p5): void {
+    this._gasParticles = [];
+    const spread = 600;
+
+    for (let i = 0; i < this.params.gasCount; i++) {
+      // Create particles in spiral formation
+      const angle = (i / this.params.gasCount) * p.TWO_PI * 3; // 3 spiral arms
+      const radius = (i / this.params.gasCount) * spread * 0.8;
+      const spiralAngle = angle + (i / this.params.gasCount) * p.PI * 2;
+
+      const pos = p.createVector(
+        Math.cos(spiralAngle) * radius,
+        p.random(-spread * 0.3, spread * 0.3),
+        Math.sin(spiralAngle) * radius
+      );
+
+      this._gasParticles.push({
+        pos,
+        vel: p.createVector(0, 0, 0),
+        size: p.random(5, 15) * this.params.gasSize * 0.05,
+        alpha: p.random(0.02, 0.15),
+        hue: this.params.nebulaHue + p.random(-30, 30),
+      });
+    }
+  }
+
+  /**
+   * Update gas particles with spiral flow
+   */
+  // @ts-expect-error - Used in Task 4 (update method)
+  private updateGas(p: p5, midLevel: number): void {
+    const flowSpeed = this.params.gasFlowSpeed * (1 + midLevel * this.params.midGasFlow);
+
+    for (const gas of this._gasParticles) {
+      // Spiral motion around center
+      const angle = Math.atan2(gas.pos.z, gas.pos.x);
+      const radius = Math.sqrt(gas.pos.x * gas.pos.x + gas.pos.z * gas.pos.z);
+
+      // Angular velocity increases toward center
+      const angularVel = flowSpeed * (50 / (radius + 1)) * 0.01;
+      const newAngle = angle + angularVel;
+
+      // Move in spiral
+      gas.pos.x = Math.cos(newAngle) * radius;
+      gas.pos.z = Math.sin(newAngle) * radius;
+
+      // Subtle Y drift
+      gas.pos.y += p.random(-0.2, 0.2) * flowSpeed * 0.1;
+
+      // Pulsate alpha
+      const pulse = (this._time || 0) * 0.001 + gas.pos.x * 0.001;
+      gas.alpha = 0.02 + Math.sin(pulse) * 0.01;
+    }
+  }
+
+  /**
+   * Draw gas nebula
+   */
+  // @ts-expect-error - Used in Task 5 (draw method)
+  private drawGas(p: p5): void {
+    p.noStroke();
+
+    for (const gas of this._gasParticles) {
+      const hue = (gas.hue + this._colorShift) % 360;
+
+      p.fill(hue, 60, 80, gas.alpha * 255);
+      p.blendMode(p.ADD);
+
+      p.push();
+      p.translate(gas.pos.x, gas.pos.y, gas.pos.z);
+      p.circle(0, 0, gas.size);
+      p.pop();
+
+      p.blendMode(p.BLEND);
+    }
+  }
 
   /**
    * Initialize star field
@@ -338,6 +419,10 @@ export class CosmicNebulaPattern extends BasePattern {
   }
 
   // Override update/draw in later tasks
-  override update(_p: p5, _context: PatternContext): void { /* Task 4 */ }
+  override update(_p: p5, _context: PatternContext): void {
+    // Update time for gas pulsation
+    this._time += 0.016;
+    // Full implementation in Task 4
+  }
   override draw(_p: p5, _options: PatternRenderOptions): void { /* Task 5 */ }
 }
