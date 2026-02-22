@@ -380,26 +380,70 @@ export class CosmicNebulaPattern extends BasePattern {
   }
 
   /**
-   * Draw stars with additive blending
+   * Draw stars with additive blending and star shapes
    */
   private drawStars(p: p5): void {
     const hueShift = this._colorShift;
 
     for (const star of this._stars) {
       const hue = (star.hue + hueShift) % 360;
+      const twinkle = (Math.sin(star.twinklePhase) + 1) / 2;
+      const pulse = 1 + twinkle * 0.3;
 
       p.noStroke();
-      // Brighter stars: higher saturation, full brightness, full opacity
-      p.fill(hue, 70, 100, 1.0);
 
       // Additive blending for glow effect
       p.blendMode(p.ADD);
 
       p.push();
       p.translate(star.pos.x, star.pos.y, star.pos.z);
-      p.circle(0, 0, star.size);
-      p.pop();
 
+      // Different shapes based on star size
+      if (star.size < 1.5) {
+        // Small stars: simple dots
+        p.fill(hue, 70, 100, 0.8);
+        p.circle(0, 0, star.size * pulse);
+      } else if (star.size < 3) {
+        // Medium stars: four-pointed stars (cross)
+        p.fill(hue, 70, 100, 0.9);
+        const rayLen = star.size * 2 * pulse;
+
+        // Vertical ray
+        p.rectMode(p.CENTER);
+        p.rect(0, 0, star.size * 0.3, rayLen);
+        // Horizontal ray
+        p.rect(0, 0, rayLen, star.size * 0.3);
+
+        // Center glow
+        p.circle(0, 0, star.size * 0.5);
+      } else {
+        // Large stars: bright with long rays and outer glow
+        const rayLen = star.size * 4 * pulse;
+
+        // Outer glow (larger, fainter)
+        p.fill(hue, 50, 100, 0.2);
+        p.circle(0, 0, star.size * 3 * pulse);
+
+        // Main rays (4 directions)
+        p.fill(hue, 70, 100, 0.95);
+        p.rectMode(p.CENTER);
+        p.rect(0, 0, star.size * 0.5, rayLen);
+        p.rect(0, 0, rayLen, star.size * 0.5);
+
+        // Diagonal rays (shorter)
+        const diagLen = rayLen * 0.6;
+        p.push();
+        p.rotate(p.PI / 4);
+        p.rect(0, 0, star.size * 0.3, diagLen);
+        p.rect(0, 0, diagLen, star.size * 0.3);
+        p.pop();
+
+        // Center bright core
+        p.fill(hue, 30, 100, 1.0);
+        p.circle(0, 0, star.size * 0.8);
+      }
+
+      p.pop();
       p.blendMode(p.BLEND);
     }
   }
