@@ -56,17 +56,23 @@ interface Ikeda3DParams {
   waveformDensity: number;    // Number of waveform points (50-500)
 
   // Colors
-  redThreshold: number;       // Value threshold for red accent (0.5-1.0)
+  redThreshold: number;       // Value threshold for red accent (0-5-1.0)
 
   // Camera
   camRadius: number;          // Camera orbit radius (200-800)
-  camSpeed: number;           // Orbit speed (0-0.02)
+  camSpeed: number;           // Auto-orbit speed (0-0.02)
+  camAngleX: number;          // Manual horizontal angle (-PI to PI)
+  camAngleY: number;          // Manual vertical angle (-PI/2 to PI/2)
   camHeight: number;          // Camera height offset (-200 to 200)
+
+  // Red scanline
+  scanlineEnabled: boolean;   // Enable red scanline effect
+  scanlineSpeed: number;      // Scanline movement speed (1-20)
+  scanlineThreshold: number;  // Audio level to trigger scanline (0-1)
 
   // Audio reactivity
   bassLayerExpand: number;    // Bass→layer spacing multiplier (0-3)
   midNoiseAmount: number;     // Mid→noise/jitter amount (0-10)
-  trebleRedFlash: number;     // Treble→red flash intensity (0-1)
 
   // Background
   backgroundAlpha: number;    // Trail fade (0.02-0.3)
@@ -96,10 +102,14 @@ const DEFAULT_PARAMS: Ikeda3DParams = {
   redThreshold: 0.7,
   camRadius: 500,
   camSpeed: 0.005,
+  camAngleX: 0,
+  camAngleY: 0.3,
   camHeight: 100,
+  scanlineEnabled: true,
+  scanlineSpeed: 8,
+  scanlineThreshold: 0.4,
   bassLayerExpand: 1.5,
   midNoiseAmount: 3.0,
-  trebleRedFlash: 0.8,
   backgroundAlpha: 0.1,
 };
 
@@ -122,11 +132,13 @@ export class Ikeda3DPattern extends BasePattern {
 
   // Camera
   private camAngle = 0;
+  private scanlineY = 0;          // Current scanline Y position
+  private currentTrebleLevel = 0; // Store treble for scanline
 
   // Time
   private time = 0;
 
-  // Red flash from treble
+  // Red flash from treble (for compatibility)
   private redFlash = 0;
 
   private needsReinit = false;
@@ -166,13 +178,17 @@ export class Ikeda3DPattern extends BasePattern {
       dataSpread: { min: 100, max: 500, step: 25 },
       waveformScale: { min: 10, max: 100, step: 5 },
       waveformDensity: { min: 50, max: 500, step: 25 },
-      redThreshold: { min: 0.5, max: 1.0, step: 0.05 },
+      redThreshold: { min: 0.05, max: 1.0, step: 0.05 },
       camRadius: { min: 200, max: 800, step: 25 },
       camSpeed: { min: 0, max: 0.02, step: 0.001 },
+      camAngleX: { min: -Math.PI, max: Math.PI, step: 0.05 },
+      camAngleY: { min: -Math.PI / 2, max: Math.PI / 2, step: 0.05 },
       camHeight: { min: -200, max: 200, step: 25 },
+      scanlineEnabled: { min: 0, max: 1, step: 1 },
+      scanlineSpeed: { min: 1, max: 20, step: 1 },
+      scanlineThreshold: { min: 0, max: 1, step: 0.05 },
       bassLayerExpand: { min: 0, max: 3, step: 0.1 },
       midNoiseAmount: { min: 0, max: 10, step: 0.5 },
-      trebleRedFlash: { min: 0, max: 1, step: 0.1 },
       backgroundAlpha: { min: 0.02, max: 0.3, step: 0.01 },
     };
   }
@@ -267,18 +283,21 @@ export class Ikeda3DPattern extends BasePattern {
     const midLevel = this.getAudioBand(context.audio, 'mid');
     const trebleLevel = this.getAudioBand(context.audio, 'treble');
 
+    // Store treble level for scanline
+    this.currentTrebleLevel = trebleLevel;
+
     // Update time
     this.time += 0.016;
 
-    // Update camera
+    // Update camera (auto-orbit + manual offset)
     this.camAngle += this.params.camSpeed;
 
-    // Red flash decay
-    this.redFlash *= 0.9;
-
-    // Add red flash on treble
-    if (trebleLevel > this.params.redThreshold) {
-      this.redFlash = trebleLevel * this.params.trebleRedFlash;
+    // Update scanline position
+    if (this.params.scanlineEnabled) {
+      this.scanlineY += this.params.scanlineSpeed;
+      if (this.scanlineY > p.height) {
+        this.scanlineY = -p.height / 2;
+      }
     }
 
     // Update barcodes with bass expansion
@@ -381,10 +400,13 @@ export class Ikeda3DPattern extends BasePattern {
 
     p.push();
 
-    // Camera setup
-    const camX = Math.sin(this.camAngle) * this.params.camRadius;
-    const camZ = Math.cos(this.camAngle) * this.params.camRadius;
-    p.camera(camX, -this.params.camHeight, camZ, 0, 0, 0, 0, 1, 0);
+    // Camera setup with manual angle offsets
+    const autoAngleX = this.camAngle;
+    const autoAngleZ = this.camAngle * 0.5;
+    const camX = Math.sin(autoAngleX + this.params.camAngleX) * this.params.camRadius;
+    const camY = Math.sin(this.params.camAngleY) * this.params.camRadius * 0.3 - this.params.camHeight;
+    const camZ = Math.cos(autoAngleZ + this.params.camAngleX) * this.params.camRadius;
+    p.camera(camX, camY, camZ, 0, 0, 0, 0, 1, 0);
 
     // Draw barcodes
     this.drawBarcodes(p);
@@ -394,6 +416,11 @@ export class Ikeda3DPattern extends BasePattern {
 
     // Draw data numbers
     this.drawDataNumbers(p);
+
+    // Draw red scanline
+    if (this.params.scanlineEnabled) {
+      this.drawScanline(p);
+    }
 
     p.pop();
   }
@@ -496,6 +523,41 @@ export class Ikeda3DPattern extends BasePattern {
 
       p.text(num.value.toFixed(0), num.x, num.y, num.z);
     }
+  }
+
+  /**
+   * Draw red scanline effect
+   */
+  private drawScanline(p: p5): void {
+    // Use stored treble level for scanline intensity
+    const trebleLevel = this.currentTrebleLevel;
+
+    // Only draw scanline if treble is above threshold
+    if (trebleLevel < this.params.scanlineThreshold) return;
+
+    const intensity = trebleLevel;
+    const alpha = Math.floor(intensity * 200);
+
+    p.push();
+    p.resetMatrix(); // Reset transforms to draw in screen space
+
+    // Draw horizontal red line
+    p.stroke(255, 0, 0, alpha);
+    p.strokeWeight(2);
+    p.line(-p.width / 2, this.scanlineY - p.height / 2, p.width / 2, this.scanlineY - p.height / 2);
+
+    // Add glow effect with multiple lines
+    if (intensity > 0.6) {
+      p.stroke(255, 0, 0, alpha * 0.5);
+      p.strokeWeight(4);
+      p.line(-p.width / 2, this.scanlineY - p.height / 2, p.width / 2, this.scanlineY - p.height / 2);
+
+      p.stroke(255, 0, 0, alpha * 0.3);
+      p.strokeWeight(6);
+      p.line(-p.width / 2, this.scanlineY - p.height / 2, p.width / 2, this.scanlineY - p.height / 2);
+    }
+
+    p.pop();
   }
 
   /**
