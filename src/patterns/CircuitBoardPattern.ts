@@ -158,10 +158,11 @@ export class CircuitBoardPattern extends BasePattern {
    * Update pattern state with audio reactivity
    * Implemented in Task 4
    */
-  override update(_p: p5, _context: PatternContext): void {
+  override update(p: p5, _context: PatternContext): void {
     // Check if reinitialization is needed
     if (this.needsReinit) {
-      // Will be implemented in Task 2
+      this.initializeGrid(p);
+      this.initializeNodes(p);
       this.needsReinit = false;
     }
 
@@ -217,7 +218,145 @@ export class CircuitBoardPattern extends BasePattern {
     this.initializeNodes(p);
   }
 
-  // Placeholder methods to be implemented in later tasks
-  private initializeGrid(_p: p5): void { /* Task 2 */ }
-  private initializeNodes(_p: p5): void { /* Task 2 */ }
+  /**
+   * Initialize grid dimensions
+   */
+  private initializeGrid(p: p5): void {
+    const spacing = this.params.gridSpacing;
+    this.gridCols = Math.floor(p.width / spacing);
+    this.gridRows = Math.floor(p.height / spacing);
+  }
+
+  /**
+   * Initialize circuit nodes on grid
+   */
+  private initializeNodes(p: p5): void {
+    this.nodes = [];
+    this.traces = [];
+
+    const nodeCount = this.params.nodeCount;
+    const spacing = this.params.gridSpacing;
+
+    // Calculate offset to center grid
+    const offsetX = (this.gridCols * spacing) / 2 - spacing / 2;
+    const offsetY = (this.gridRows * spacing) / 2 - spacing / 2;
+
+    // Track occupied grid positions
+    const occupied = new Set<string>();
+
+    // Node type distribution
+    const typeDistribution: NodeType[] = [];
+    const cpuCount = Math.floor(nodeCount * 0.1);  // 10% CPU
+    const ramCount = Math.floor(nodeCount * 0.3);  // 30% RAM
+    const ioCount = Math.floor(nodeCount * 0.3);   // 30% IO
+    const powerCount = nodeCount - cpuCount - ramCount - ioCount; // Rest POWER
+
+    for (let i = 0; i < cpuCount; i++) typeDistribution.push('CPU');
+    for (let i = 0; i < ramCount; i++) typeDistribution.push('RAM');
+    for (let i = 0; i < ioCount; i++) typeDistribution.push('IO');
+    for (let i = 0; i < powerCount; i++) typeDistribution.push('POWER');
+
+    // Shuffle types
+    for (let i = typeDistribution.length - 1; i > 0; i--) {
+      const j = Math.floor(p.random(i + 1));
+      [typeDistribution[i], typeDistribution[j]] = [typeDistribution[j], typeDistribution[i]];
+    }
+
+    // Place nodes on random grid positions
+    for (let i = 0; i < nodeCount; i++) {
+      let gridX: number;
+      let gridY: number;
+      let key: string;
+      let attempts = 0;
+
+      // Find unoccupied grid position
+      do {
+        gridX = Math.floor(p.random(this.gridCols));
+        gridY = Math.floor(p.random(this.gridRows));
+        key = `${gridX},${gridY}`;
+        attempts++;
+      } while (occupied.has(key) && attempts < 100);
+
+      if (attempts >= 100) continue; // Skip if can't find position
+
+      occupied.add(key);
+
+      const x = gridX * spacing - offsetX;
+      const y = gridY * spacing - offsetY;
+      const type = typeDistribution[i] || 'IO';
+
+      // Node size based on type
+      const size = type === 'CPU' ? spacing * 0.4 :
+                   type === 'POWER' ? spacing * 0.35 :
+                   type === 'RAM' ? spacing * 0.3 : spacing * 0.25;
+
+      this.nodes.push({
+        id: `node-${i}`,
+        gridX,
+        gridY,
+        x,
+        y,
+        type,
+        size,
+        pulsePhase: p.random(p.TWO_PI),
+        connections: [],
+      });
+    }
+
+    // Create initial connections
+    this.createInitialConnections(p);
+  }
+
+  /**
+   * Create initial connections between nearby nodes
+   */
+  private createInitialConnections(p: p5): void {
+    const density = this.params.connectionDensity;
+
+    for (const node of this.nodes) {
+      // Find nearby nodes
+      const nearby = this.nodes.filter(n => {
+        if (n.id === node.id) return false;
+        const dist = Math.abs(n.gridX - node.gridX) + Math.abs(n.gridY - node.gridY);
+        return dist <= 4 && dist >= 2; // 2-4 grid units away
+      });
+
+      // Sort by distance and connect to closest nodes
+      nearby.sort((a, b) => {
+        const distA = Math.abs(a.gridX - node.gridX) + Math.abs(a.gridY - node.gridY);
+        const distB = Math.abs(b.gridX - node.gridX) + Math.abs(b.gridY - node.gridY);
+        return distA - distB;
+      });
+
+      for (const target of nearby) {
+        if (p.random() > density) continue;
+
+        // Check if connection already exists
+        if (node.connections.includes(target.id)) continue;
+        if (target.connections.includes(node.id)) continue;
+
+        // Create trace (using placeholder for now - full implementation in Task 3)
+        const path = [{ x: node.x, y: node.y } as p5.Vector, { x: target.x, y: target.y } as p5.Vector];
+        const layer = Math.floor(Math.random() * 3);
+        const colorOffset = Math.random() * 30 - 15;
+
+        this.traces.push({
+          id: `trace-${node.id}-${target.id}-${Date.now()}`,
+          fromNode: node.id,
+          toNode: target.id,
+          path,
+          progress: 1,
+          dataFlow: Math.random(),
+          layer,
+          colorOffset,
+        });
+
+        node.connections.push(target.id);
+        target.connections.push(node.id);
+
+        // Limit connections per node
+        if (node.connections.length >= 4) break;
+      }
+    }
+  }
 }
