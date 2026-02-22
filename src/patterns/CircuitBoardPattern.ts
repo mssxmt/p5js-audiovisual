@@ -305,7 +305,7 @@ export class CircuitBoardPattern extends BasePattern {
   }
 
   /**
-   * Draw circuit nodes
+   * Draw circuit nodes with IC package styling
    */
   private drawNodes(p: p5): void {
     const baseHue = this.params.baseHue;
@@ -321,39 +321,107 @@ export class CircuitBoardPattern extends BasePattern {
       const pulse = (Math.sin(node.pulsePhase) + 1) / 2; // 0-1
       const brightness = 50 + pulse * 30;
 
-      // Draw node body
-      p.stroke(hue, 70, brightness, 0.9);
-      p.strokeWeight(1.5);
-      p.fill(hue, 50, brightness * 0.5, 0.7);
+      // Determine IC package dimensions based on type
+      let width: number;
+      let height: number;
+      let pinCount: number;
 
-      // Shape based on node type
       if (node.type === 'CPU') {
-        // Square for CPU
-        p.rectMode(p.CENTER);
-        p.rect(node.x, node.y, node.size, node.size);
+        // Large square IC (QFP style)
+        width = node.size * 1.6;
+        height = node.size * 1.6;
+        pinCount = 8;
       } else if (node.type === 'RAM') {
-        // Rectangle for RAM
-        p.rectMode(p.CENTER);
-        p.rect(node.x, node.y, node.size * 1.2, node.size * 0.6);
+        // Rectangular IC (DIP/SOP style)
+        width = node.size * 2.0;
+        height = node.size * 0.8;
+        pinCount = 6;
       } else if (node.type === 'POWER') {
-        // Circle for POWER
-        p.circle(node.x, node.y, node.size);
+        // Power IC (larger package)
+        width = node.size * 1.4;
+        height = node.size * 1.4;
+        pinCount = 4;
       } else {
-        // Small square for IO
+        // Small IC for IO
+        width = node.size * 1.2;
+        height = node.size * 1.0;
+        pinCount = 4;
+      }
+
+      const pinSize = node.size * 0.15;
+      const pinSpacing = width / (pinCount / 2 + 1);
+
+      // Draw pins (silver colored)
+      p.noStroke();
+      p.fill(0, 0, 60, 0.8);
+
+      // Top pins
+      for (let i = 0; i < pinCount / 2; i++) {
+        const px = node.x - width / 2 + pinSpacing * (i + 1);
         p.rectMode(p.CENTER);
-        p.rect(node.x, node.y, node.size, node.size);
+        p.rect(px, node.y - height / 2 - pinSize / 2, pinSize, pinSize * 1.5);
+      }
+      // Bottom pins
+      for (let i = 0; i < pinCount / 2; i++) {
+        const px = node.x - width / 2 + pinSpacing * (i + 1);
+        p.rectMode(p.CENTER);
+        p.rect(px, node.y + height / 2 + pinSize / 2, pinSize, pinSize * 1.5);
+      }
+
+      // Draw IC body (dark package)
+      p.stroke(hue, 60, brightness * 0.8, 0.9);
+      p.strokeWeight(1);
+      p.fill(hue, 40, brightness * 0.3, 0.8);
+      p.rectMode(p.CENTER);
+      p.rect(node.x, node.y, width, height, 2);
+
+      // Draw pin 1 indicator (small dot)
+      p.noStroke();
+      p.fill(hue, 70, brightness, 0.9);
+      p.circle(node.x - width / 2 + width * 0.2, node.y - height / 2 + height * 0.2, 2);
+
+      // Draw IC label text representation (lines indicating internal connections)
+      p.stroke(hue, 70, brightness * 0.6, 0.5);
+      p.strokeWeight(0.5);
+      const lineCount = node.type === 'CPU' ? 4 : node.type === 'RAM' ? 3 : 2;
+      for (let i = 0; i < lineCount; i++) {
+        const ly = node.y - height * 0.3 + (height * 0.6 / (lineCount + 1)) * (i + 1);
+        p.line(node.x - width * 0.35, ly, node.x + width * 0.35, ly);
+      }
+
+      // Draw connection points (pads where traces connect)
+      for (const connId of node.connections) {
+        const connNode = this.nodes.find(n => n.id === connId);
+        if (!connNode) continue;
+
+        // Calculate direction to connected node
+        const dx = connNode.x - node.x;
+        const dy = connNode.y - node.y;
+
+        // Position pad on edge of IC based on direction
+        let padX = node.x;
+        let padY = node.y;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+          // Horizontal connection
+          padX = node.x + (dx > 0 ? width / 2 : -width / 2);
+        } else {
+          // Vertical connection
+          padY = node.y + (dy > 0 ? height / 2 : -height / 2);
+        }
+
+        // Draw pad
+        p.noStroke();
+        p.fill(hue, 80, brightness, 0.9);
+        p.circle(padX, padY, pinSize * 1.5);
       }
 
       // Draw glow effect
       if (glowIntensity > 0) {
         p.noStroke();
-        p.fill(hue, 70, 80, glowIntensity * 0.3);
-        if (node.type === 'POWER') {
-          p.circle(node.x, node.y, node.size * 1.5);
-        } else {
-          p.rectMode(p.CENTER);
-          p.rect(node.x, node.y, node.size * 1.3, node.size * 1.3);
-        }
+        p.fill(hue, 70, 70, glowIntensity * 0.2);
+        p.rectMode(p.CENTER);
+        p.rect(node.x, node.y, width * 1.2, height * 1.2, 4);
       }
     }
 
