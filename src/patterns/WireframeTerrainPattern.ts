@@ -305,7 +305,7 @@ export class WireframeTerrainPattern extends BasePattern {
    * Initialize terrain grid
    * Creates a 2D grid of terrain points centered around origin
    */
-  private initializeTerrain(_p: p5): void {
+  private initializeTerrain(p: p5): void {
     const { gridSize, cellSize } = this.params;
 
     // Clear existing terrain
@@ -314,16 +314,22 @@ export class WireframeTerrainPattern extends BasePattern {
     // Calculate offset to center terrain
     const offset = (gridSize * cellSize) / 2;
 
-    // Create 2D array of TerrainPoint with flat terrain (y=0 initially)
+    // Create 2D array of TerrainPoint with initial Perlin noise heights
     for (let i = 0; i <= gridSize; i++) {
       const row: TerrainPoint[] = [];
       for (let j = 0; j <= gridSize; j++) {
+        const x = i * cellSize - offset;
+        const z = j * cellSize - offset;
+
+        // Calculate initial height from Perlin noise
+        const initialHeight = p.noise(x * this.params.terrainScale, z * this.params.terrainScale) * this.params.maxHeight;
+
         row.push({
-          x: i * cellSize - offset,
-          y: 0,
-          z: j * cellSize - offset,
-          baseY: 0,
-          targetY: 0,
+          x,
+          y: initialHeight,
+          z,
+          baseY: initialHeight,
+          targetY: initialHeight,
         });
       }
       this.terrain.push(row);
