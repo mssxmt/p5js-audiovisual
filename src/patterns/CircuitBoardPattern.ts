@@ -308,6 +308,108 @@ export class CircuitBoardPattern extends BasePattern {
   }
 
   /**
+   * Generate Manhattan routing path between two nodes
+   * Uses orthogonal routing with horizontal-first preference
+   */
+  private generateManhattanPath(from: CircuitNode, to: CircuitNode): p5.Vector[] {
+    // Create control points for orthogonal routing
+    const path: p5.Vector[] = [];
+
+    // Start point (from node)
+    path.push({ x: from.x, y: from.y } as p5.Vector);
+
+    // Determine routing direction
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+
+    // Single axis aligned
+    if (Math.abs(dx) < 1) {
+      // Vertical only
+      path.push({ x: to.x, y: to.y } as p5.Vector);
+      return path;
+    }
+    if (Math.abs(dy) < 1) {
+      // Horizontal only
+      path.push({ x: to.x, y: to.y } as p5.Vector);
+      return path;
+    }
+
+    // Two-segment Manhattan routing
+    // Choose intermediate point based on grid alignment
+    const midX = from.x + dx / 2;
+
+    // Add intermediate points for L-shaped routing
+    path.push({ x: midX, y: from.y } as p5.Vector);
+    path.push({ x: midX, y: to.y } as p5.Vector);
+
+    // End point (to node)
+    path.push({ x: to.x, y: to.y } as p5.Vector);
+
+    return path;
+  }
+
+  /**
+   * Create a new trace between two nodes
+   */
+  private createTrace(fromNode: CircuitNode, toNode: CircuitNode): void {
+    const path = this.generateManhattanPath(fromNode, toNode);
+    const layer = Math.floor(Math.random() * 3); // 3 visual layers
+    const colorOffset = Math.random() * 30 - 15; // +/- 15° hue variation
+
+    this.traces.push({
+      id: `trace-${fromNode.id}-${toNode.id}-${Date.now()}`,
+      fromNode: fromNode.id,
+      toNode: toNode.id,
+      path,
+      progress: 0,
+      dataFlow: 0,
+      layer,
+      colorOffset,
+    });
+  }
+
+  /**
+   * Spawn new traces on beat/audio peaks
+   * Used in Task 4 (update method)
+   */
+  // @ts-ignore: Used in Task 4 (update method)
+  private spawnNewTraces(p: p5, spawnChance: number): void {
+    if (this.traces.length >= this.params.maxTraces) return;
+
+    // Find unconnected or under-connected nodes
+    const availableNodes = this.nodes.filter(n => n.connections.length < 6);
+
+    if (availableNodes.length < 2) return;
+
+    // Try to spawn new connection
+    if (p.random() < spawnChance) {
+      const fromNode = p.random(availableNodes);
+      const candidates = availableNodes.filter(n =>
+        n.id !== fromNode.id &&
+        !fromNode.connections.includes(n.id) &&
+        !n.connections.includes(fromNode.id)
+      );
+
+      if (candidates.length > 0) {
+        // Prefer closer nodes
+        candidates.sort((a, b) => {
+          const distA = Math.abs(a.gridX - fromNode.gridX) + Math.abs(a.gridY - fromNode.gridY);
+          const distB = Math.abs(b.gridX - fromNode.gridX) + Math.abs(b.gridY - fromNode.gridY);
+          return distA - distB;
+        });
+
+        // Pick from top 3 closest
+        const topCount = Math.min(3, candidates.length);
+        const toNode = candidates[Math.floor(p.random(topCount))];
+
+        this.createTrace(fromNode, toNode);
+        fromNode.connections.push(toNode.id);
+        toNode.connections.push(fromNode.id);
+      }
+    }
+  }
+
+  /**
    * Create initial connections between nearby nodes
    */
   private createInitialConnections(p: p5): void {
@@ -335,24 +437,17 @@ export class CircuitBoardPattern extends BasePattern {
         if (node.connections.includes(target.id)) continue;
         if (target.connections.includes(node.id)) continue;
 
-        // Create trace (using placeholder for now - full implementation in Task 3)
-        const path = [{ x: node.x, y: node.y } as p5.Vector, { x: target.x, y: target.y } as p5.Vector];
-        const layer = Math.floor(Math.random() * 3);
-        const colorOffset = Math.random() * 30 - 15;
-
-        this.traces.push({
-          id: `trace-${node.id}-${target.id}-${Date.now()}`,
-          fromNode: node.id,
-          toNode: target.id,
-          path,
-          progress: 1,
-          dataFlow: Math.random(),
-          layer,
-          colorOffset,
-        });
-
+        // Create trace using Manhattan routing
+        this.createTrace(node, target);
         node.connections.push(target.id);
         target.connections.push(node.id);
+
+        // Set initial traces to fully grown
+        const trace = this.traces[this.traces.length - 1];
+        if (trace) {
+          trace.progress = 1;
+          trace.dataFlow = Math.random();
+        }
 
         // Limit connections per node
         if (node.connections.length >= 4) break;
