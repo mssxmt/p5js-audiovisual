@@ -294,8 +294,9 @@ export class MidiManager {
     // Update current data
     this.currentData.cc.set(key, normalized);
 
-    // Check for Learn Manager assignments
-    const learnAssignment = this.learnManager.getAssignment(key);
+    // Check for Learn Manager assignments - get from mappings Map directly by key
+    const learnAssignments = this.learnManager.getAssignments();
+    const learnAssignment = learnAssignments.get(key);
     if (learnAssignment) {
       // Use Learn Manager assignment
       const mappedValue = this.learnManager.mapMidiValue(value, learnAssignment.min, learnAssignment.max);
