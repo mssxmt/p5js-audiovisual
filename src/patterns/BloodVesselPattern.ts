@@ -88,7 +88,7 @@ const DEFAULT_PARAMS: BloodVesselParams = {
   pulseSpeed: 0.05,
   baseHue: 0,                  // Pure red
   saturation: 100,             // Full saturation
-  brightness: 60,              // Bright
+  brightness: 55,              // Lower for more saturated colors
   chaosFactor: 0.3,
   beatThreshold: 0.5,          // Bass level to trigger beat
   beatCooldown: 10,            // Minimum frames between beats
@@ -458,10 +458,8 @@ export class BloodVesselPattern extends BasePattern {
 
     p.push();
 
-    // Additive blending for glowing effect
-    p.blendMode(p.ADD);
-
-    // Draw all vessels
+    // Normal blend mode for clear colors
+    // Additive blending was causing white-out and color washout
     this.drawVessels(p);
 
     p.pop();
@@ -509,37 +507,21 @@ export class BloodVesselPattern extends BasePattern {
     const hue = (this.params.baseHue + vessel.level * 5) % 360;
     const saturation = this.params.saturation;
     // Brightness decreases slightly for deeper branches
-    const brightnessDimming = this.map(vessel.level, 0, this.params.maxBranchDepth, 0, 20);
-    const brightness = Math.max(10, this.params.brightness - brightnessDimming);
+    const brightnessDimming = this.map(vessel.level, 0, this.params.maxBranchDepth, 0, 15);
+    const brightness = Math.max(20, this.params.brightness - brightnessDimming);
 
+    // Draw single thick vessel (not multiple layers)
     p.colorMode(p.HSL);
-    p.stroke(hue, saturation, brightness, 0.95);
-    p.colorMode(p.RGB);
+    p.stroke(hue, saturation, brightness, 1.0);
+    p.strokeWeight(pulseThickness);
     p.noFill();
-
-    // Draw vessel with multiple layers for thickness effect
-    const layers = Math.max(1, Math.floor(pulseThickness / 2));
-    for (let i = 0; i < layers; i++) {
-      const layerThickness = pulseThickness / layers;
-      p.strokeWeight(layerThickness);
-
-      // Slightly offset each layer
-      const offset = (i - layers / 2) * 0.5;
-      p.stroke(
-        hue + offset * 5,
-        saturation,
-        brightness - offset * 2,
-        0.95
-      );
-      p.colorMode(p.HSL);
-      p.bezier(
-        vessel.startPoint.x, vessel.startPoint.y,
-        vessel.controlPoint1.x + offset, vessel.controlPoint1.y + offset,
-        vessel.controlPoint2.x + offset, vessel.controlPoint2.y + offset,
-        currentEndPoint.x, currentEndPoint.y
-      );
-      p.colorMode(p.RGB);
-    }
+    p.bezier(
+      vessel.startPoint.x, vessel.startPoint.y,
+      vessel.controlPoint1.x, vessel.controlPoint1.y,
+      vessel.controlPoint2.x, vessel.controlPoint2.y,
+      currentEndPoint.x, currentEndPoint.y
+    );
+    p.colorMode(p.RGB);
 
     // Draw branches
     for (const branch of vessel.branches) {
